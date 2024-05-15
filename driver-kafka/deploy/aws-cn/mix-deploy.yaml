@@ -12,29 +12,61 @@
 # limitations under the License.
 #
 
-- name: Set common facts
-  tags: [always]
-  hosts: all
+
+- name: General setup for all
+  hosts: [controller, broker, client]
   connection: ssh
+  become: true
   tasks:
+    - name: Update and upgrade apt packages
+      become: true
+      apt:
+        upgrade: yes
+        update_cache: yes
+        cache_valid_time: 86400
+    - name: Install packages
+      apt: pkg={{ item }} state=latest
+      with_items:
+        - wget
+        - tuned
+        - openjdk-17-jdk
+        - sysstat
+        - vim
+        - chrony
     - name: Set common facts
       set_fact:
-        controllerServers: "{{ groups['server'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') | join(',') }}"
-        brokerServers: "{{ groups['broker'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9092') | join(',') }}"
+        # combine all mixed servers with broker port
+        mixedServers: "{{ groups['controller'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9092') | join(',') }}"
         privateIp: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
-        base_data_path: "/mnt/data-1"
-        base_code_path: "/opt"
-        kafka_xm: "12g"
-        client_worker_heap_size: "8g"
-        client_bench_heap_size: "4g"
+        baseStorePath: "/mnt/data-1"
+    - name: Change locale to en_US.utf-8
+      shell: |
+        echo 'LANG=en_US.utf-8
+              LC_ALL=en_US.utf-8' > /etc/environment
 
-- name: Increase file descriptor limit and reboot
-  tags: [prepare]
-  any_errors_fatal: true
+
+- name: Format and mount disks for Kafka hosts
   hosts: [controller, broker]
   connection: ssh
   become: true
   tasks:
+    - command: >
+        tuned-adm profile latency-performance
+    - name: Format disks
+      filesystem:
+        fstype: ext4
+        dev: '{{ item }}'
+      with_items:
+        - '/dev/nvme1n1'
+    - name: Mount disks
+      mount:
+        path: "{{ item.path }}"
+        src: "{{ item.src }}"
+        fstype: ext4
+        opts: defaults,noatime,nodiscard,data=writeback
+        state: mounted
+      with_items:
+        - { path: "{{ baseStorePath }}", src: "/dev/nvme1n1" }
     - name: Increase hard file descriptor limit
       pam_limits:
         domain: '*'
@@ -61,129 +93,78 @@
     - name: Reboot the machine with all defaults
       reboot:
 
-- name: General setup for all
-  tags: [prepare]
-  hosts: all
-  connection: ssh
-  become: true
-  tasks:
-    - name: Update and upgrade apt packages
-      apt:
-        upgrade: yes
-        update_cache: yes
-        cache_valid_time: 86400
-    - name: Install packages
-      apt: pkg={{ item }} state=present
-      with_items:
-        - wget
-        - tuned
-        - openjdk-17-jdk
-        - sysstat
-        - vim
-        - chrony
-
-- name: Format and mount disks for Kafka hosts
-  tags: [prepare]
-  any_errors_fatal: true
-  hosts: [server, broker]
-  connection: ssh
-  become: true
-  tasks:
-    - command: >
-        tuned-adm profile latency-performance
-    - name: Format disks
-      filesystem:
-        fstype: ext4
-        dev: '{{ item }}'
-      with_items:
-        ## aws default raw disk name is /dev/nvme1n1
-        - '/dev/nvme1n1'
-    - name: Mount disks
-      mount:
-        path: "{{ item.path }}"
-        src: "{{ item.src }}"
-        fstype: ext4
-        opts: defaults,noatime,nodiscard,data=writeback
-        state: mounted
-      with_items:
-        - { path: "{{ base_data_path }}", src: "/dev/nvme1n1" }
 
 - name: Kafka general setup
-  tags: [prepare]
-  hosts: [server, broker]
+  hosts: [controller, broker]
   connection: ssh
   become: true
   tasks:
-    - file: path={{ base_code_path }}/kafka state=absent
-    - file: path={{ base_code_path }}/kafka state=directory
+    - file: path={{ baseStorePath }}/kafka state=absent
+    - file: path={{ baseStorePath }}/kafka state=directory
+    - name: Generate quorum servers
+      set_fact:
+        quorumServers: "{{ quorumServers | default('') + (itemIndex + 1) | string + '@' + item + ',' }}"
+      loop: "{{ groups['controller'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') }}"
+      loop_control:
+        index_var: itemIndex
     - name: Set common facts
-      tags: always
-      block:
-        - set_fact:
-            quorumServers: "{{ quorumServers | default('') + (itemIndex + 1) | string + '@' + item + ',' }}"
-          loop: "{{ groups['server'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') }}"
-          loop_control:
-            index_var: itemIndex
-        - set_fact:
-            quorumServers: "{{ quorumServers[:-1] }}"
-            kafkaVersion: "3.6.0"
-            KAFKA_CLUSTER_ID: "XPufKTN9T1SpE82LDKwXwA"
-            flushScheduleInterval: "9223372036854775807"
+      set_fact:
+        quorumServers: "{{ quorumServers[:-1] }}"
+        kafkaVersion: "3.4.0"
+        KAFKA_CLUSTER_ID: "XPufKTN9T1SpE82LDKwXwA"
+        flushScheduleInterval: "9223372036854775807"
     - name: Download Kafka package
       unarchive:
-        src: "https://archive.apache.org/dist/kafka/{{ kafkaVersion }}/kafka_2.13-{{ kafkaVersion }}.tgz"
+        src: "https://dlcdn.apache.org/kafka/{{ kafkaVersion }}/kafka_2.13-{{ kafkaVersion }}.tgz"
         remote_src: yes
-        dest: "{{ base_code_path }}/kafka"
-        extra_opts: ["--strip-components=1"]
+        dest: "{{ baseStorePath }}/kafka"
+        extra_opts: [ "--strip-components=1" ]
 
-# setting servers.
-- name: Setup Kafka servers
-  tags: [run]
-  hosts: server
+
+# setting nodes that are both controller and broker.
+- name: Setup Kafka mix nodes
+  hosts: controller
   connection: ssh
   become: true
   tasks:
     - name: Set nodeId
       set_fact:
-        nodeId: "{{ groups['server'].index(inventory_hostname) + 1 }}"
-    - name: copy server properties
-      template:
+        nodeId: "{{ groups['controller'].index(inventory_hostname) + 1 }}"
+    - template:
         src: "templates/server.properties"
-        dest: "{{ base_code_path }}/kafka/config/kraft/server.properties"
+        dest: "{{ baseStorePath }}/kafka/config/kraft/server.properties"
     - template:
         src: "templates/server.service"
         dest: "/etc/systemd/system/server.service"
     - name: Format Log Directories
       shell: bin/kafka-storage.sh format -t {{ KAFKA_CLUSTER_ID }} -c config/kraft/server.properties --ignore-formatted
       args:
-        chdir: "{{ base_code_path }}/kafka"
+        chdir: "{{ baseStorePath }}/kafka/"
     - systemd:
         state: restarted
         daemon_reload: yes
         name: "server"
       tags: [restart-server]
 
-
 - name: Setup Kafka brokers
-  tags: [run]
   hosts: broker
   connection: ssh
   become: true
   tasks:
     - name: Set nodeId
       set_fact:
-        nodeId: "{{  (groups['server'] | length) + groups['broker'].index(inventory_hostname) + 1 }}"
-    - name: copy broker properties
+        nodeId: "{{  (groups['controller'] | length) + groups['broker'].index(inventory_hostname) + 1 }}"
+    - name: Set up broker
       template:
         src: "templates/broker.properties"
-        dest: "{{ base_code_path }}/kafka/config/kraft/broker.properties"
+        dest: "{{ baseStorePath }}/kafka/config/kraft/broker.properties"
     - template:
         src: "templates/broker.service"
         dest: "/etc/systemd/system/broker.service"
     - name: Format Log Directories
       shell: bin/kafka-storage.sh format -t {{ KAFKA_CLUSTER_ID }} -c config/kraft/broker.properties --ignore-formatted
       args:
-        chdir: "{{ base_code_path }}/kafka"
+        chdir: "{{ baseStorePath }}/kafka/"
     - systemd:
         state: restarted
         daemon_reload: yes
@@ -192,7 +173,6 @@
 
 
 - name: Setup Benchmark client
-  tags: [run]
   hosts: client
   connection: ssh
   become: true
@@ -213,11 +193,21 @@
       register: drivers_list
       tags: [client-code]
 
+    - name: Fill brokerServers into bootstrapServers if brokerGroup exists
+      set_fact:
+        brokerServers: "{{ groups['broker'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9092') | join(',') }}"
+      when: "'broker' in groups"
+      tags: [client-code]
+    # all servers play the role of broker
+    - name: Set boostrapServers
+      set_fact:
+        bootstrapServers: "{{ (mixedServers + ',' + brokerServers) if ('broker' in groups) else mixedServers }}"
+
     - name: Configure Bootstrap Servers
       lineinfile:
         dest: '{{ item }}'
         regexp: '^  bootstrap.servers='
-        line: '  bootstrap.servers={{ brokerServers }}'
+        line: '  bootstrap.servers={{ bootstrapServers }}'
       with_items: '{{ drivers_list.stdout_lines }}'
       tags: [client-code]
 
@@ -229,27 +219,27 @@
       lineinfile:
         dest: '{{ item }}'
         regexp: '^  bootstrap.servers='
-        line: '  bootstrap.servers={{ brokerServers }}'
+        line: '  bootstrap.servers={{ bootstrapServers }}'
       with_items: '{{ jms_drivers_list.stdout_lines }}'
 
     - name: Configure JMS Connection Factory
       ansible.builtin.replace:
         dest: '{{ item }}'
         regexp: 'localhost\:9092'
-        replace: '{{ brokerServers }}'
+        replace: '{{ bootstrapServers }}'
       with_items: '{{ jms_drivers_list.stdout_lines }}'
 
     - name: Configure memory
       lineinfile:
         dest: /opt/benchmark/bin/benchmark-worker
         regexp: '^JVM_MEM='
-        line: 'JVM_MEM="-Xms{{ client_worker_heap_size }} -Xmx{{ client_worker_heap_size }} -XX:+UnlockExperimentalVMOptions -XX:+UseZGC -XX:+ParallelRefProcEnabled -XX:+DoEscapeAnalysis -XX:ParallelGCThreads=12 -XX:ConcGCThreads=12 -XX:+DisableExplicitGC -XX:-ResizePLAB"'
+        line: 'JVM_MEM="-Xms100G -Xmx100G -XX:+UnlockExperimentalVMOptions -XX:+UseZGC -XX:+ParallelRefProcEnabled -XX:+DoEscapeAnalysis -XX:ParallelGCThreads=12 -XX:ConcGCThreads=12 -XX:+DisableExplicitGC -XX:-ResizePLAB"'
       tags: [client-code]
     - name: Configure memory
       lineinfile:
         dest: /opt/benchmark/bin/benchmark
         regexp: '^JVM_MEM='
-        line: 'JVM_MEM="-Xmx{{ client_bench_heap_size }}"'
+        line: 'JVM_MEM="-Xmx4G"'
       tags: [client-code]
     - template:
         src: "templates/workers.yaml"
@@ -275,18 +265,17 @@
         daemon_reload: yes
         name: "chronyd"
 
-
 - name:  Hosts addresses
-  tags: [always]
   hosts: localhost
   become: false
   tasks:
     - debug:
-        msg: "Kafka servers {{ item }}"
-      with_items: "{{ groups['server'] }}"
+        msg: "Kafka controller servers {{ item }}"
+      with_items: "{{ groups['controller'] }}"
     - debug:
         msg: "Kafka brokers {{ item }}"
       with_items: "{{ groups['broker'] }}"
+      when: "'broker' in groups"
     - debug:
         msg: "Benchmark clients {{ item }}"
       with_items: "{{ groups['client'] }}"

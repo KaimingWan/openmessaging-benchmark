@@ -46,6 +46,8 @@ variable "region" {}
 
 variable "ami" {}
 
+variable "user" {}
+
 variable "az" {
   type = list(string)
 }
@@ -85,8 +87,8 @@ resource "aws_vpc" "benchmark_vpc" {
   cidr_block = "10.0.0.0/16"
 
   tags = {
-    Name      = "Openmessaging_Benchmark_VPC_automq_envid"
-    Benchmark = "Openmessaging_automq_envid"
+    Name      = "Openmessaging_Benchmark_VPC_${AUTOMQ_ENVID}"
+    Benchmark = "Openmessaging_${AUTOMQ_ENVID}"
   }
 }
 
@@ -95,7 +97,7 @@ resource "aws_internet_gateway" "kafka" {
   vpc_id = "${aws_vpc.benchmark_vpc.id}"
 
   tags = {
-    Benchmark = "Openmessaging_automq_envid"
+    Benchmark = "Openmessaging_${AUTOMQ_ENVID}"
   }
 }
 
@@ -116,12 +118,12 @@ resource "aws_subnet" "benchmark_subnet" {
 
 
   tags = {
-    Benchmark = "Openmessaging_Benchmark_automq_envid"
+    Benchmark = "Openmessaging_Benchmark_${AUTOMQ_ENVID}"
   }
 }
 
 resource "aws_security_group" "benchmark_security_group" {
-  name   = "terraform-kafka__automq_envid"
+  name   = "terraform-kafka__${AUTOMQ_ENVID}"
   vpc_id = "${aws_vpc.benchmark_vpc.id}"
 
   # SSH access from anywhere
@@ -149,17 +151,17 @@ resource "aws_security_group" "benchmark_security_group" {
   }
 
   tags = {
-    Name      = "Openmessaging_Benchmark_SecurityGroup_automq_envid"
-    Benchmark = "Openmessaging_automq_envid"
+    Name      = "Openmessaging_Benchmark_SecurityGroup_${AUTOMQ_ENVID}"
+    Benchmark = "Openmessaging_${AUTOMQ_ENVID}"
   }
 }
 
 resource "aws_key_pair" "auth" {
-  key_name   = "${var.key_name}-kafka"
+  key_name   = "${var.key_name}-${AUTOMQ_ENVID}"
   public_key = file(var.public_key_path)
 
   tags = {
-    Benchmark = "Openmessaging_automq_envid"
+    Benchmark = "Openmessaging_${AUTOMQ_ENVID}"
   }
 }
 
@@ -173,26 +175,28 @@ resource "aws_instance" "server" {
 
   root_block_device {
     volume_type = "gp3"
-    volume_size = 64
+    volume_size = 16
     tags = {
-      Name            = "Openmessaging_Benchmark_EBS_root_server_${count.index}_automq_envid"
-      Benchmark       = "Openmessaging_automq_envid"
+      Name            = "Openmessaging_Benchmark_EBS_root_server_${count.index}_${AUTOMQ_ENVID}"
+      Benchmark       = "Openmessaging_${AUTOMQ_ENVID}"
     }
   }
 
   ebs_block_device {
     device_name = "/dev/sdb"
-    volume_type = "gp3"
-    volume_size = 32
+    volume_type = var.ebs_volume_type
+    volume_size = var.ebs_volume_size
+    iops        = var.ebs_iops
+    throughput  = var.ebs_throughput
     tags = {
-      Name                  = "Openmessaging_Benchmark_EBS_data_server_${count.index}_automq_envid"
+      Name                  = "Openmessaging_Benchmark_EBS_data_server_${count.index}_${AUTOMQ_ENVID}"
     }
   }
 
   monitoring = var.monitoring
   tags = {
-    Name            = "Openmessaging_Benchmark_EC2_server_${count.index}_automq_envid"
-    Benchmark       = "Openmessaging_automq_envid"
+    Name            = "Openmessaging_Benchmark_EC2_server_${count.index}_${AUTOMQ_ENVID}"
+    Benchmark       = "Openmessaging_${AUTOMQ_ENVID}"
   }
 }
 
@@ -206,10 +210,10 @@ resource "aws_instance" "broker" {
 
   root_block_device {
     volume_type = "gp3"
-    volume_size = 64
+    volume_size = 16
     tags = {
-      Name            = "Openmessaging_Benchmark_EBS_root_broker_${count.index}_automq_envid"
-      Benchmark       = "Openmessaging_automq_envid"
+      Name            = "Openmessaging_Benchmark_EBS_root_broker_${count.index}_${AUTOMQ_ENVID}"
+      Benchmark       = "Openmessaging_${AUTOMQ_ENVID}"
     }
   }
 
@@ -220,15 +224,15 @@ resource "aws_instance" "broker" {
     iops        = var.ebs_iops
     throughput  = var.ebs_throughput
     tags = {
-      Name                  = "Openmessaging_Benchmark_EBS_data_broker_${count.index}_automq_envid"
-      Benchmark             = "Openmessaging_automq_envid"
+      Name                  = "Openmessaging_Benchmark_EBS_data_broker_${count.index}_${AUTOMQ_ENVID}"
+      Benchmark             = "Openmessaging_${AUTOMQ_ENVID}"
     }
   }
 
   monitoring = var.monitoring
   tags = {
-    Name            = "Openmessaging_Benchmark_EC2_broker_${count.index}_automq_envid"
-    Benchmark       = "Openmessaging_automq_envid"
+    Name            = "Openmessaging_Benchmark_EC2_broker_${count.index}_${AUTOMQ_ENVID}"
+    Benchmark       = "Openmessaging_${AUTOMQ_ENVID}"
   }
 }
 
@@ -242,10 +246,10 @@ resource "aws_instance" "client" {
 
   root_block_device {
     volume_type = "gp3"
-    volume_size = 64
+    volume_size = 16
     tags = {
-      Name      = "Kafla_on_S3_Benchmark_EBS_root_client_${count.index}_automq_envid"
-      Benchmark = "Openmessaging_automq_envid_client"
+      Name      = "Kafla_on_S3_Benchmark_EBS_root_client_${count.index}_${AUTOMQ_ENVID}"
+      Benchmark = "Openmessaging_${AUTOMQ_ENVID}_client"
     }
   }
 
@@ -254,6 +258,10 @@ resource "aws_instance" "client" {
     Name      = "kafka_client_${count.index}"
     Benchmark = "Kafka"
   }
+}
+
+output "user" {
+  value = var.user
 }
 
 output "server_ssh_host" {
