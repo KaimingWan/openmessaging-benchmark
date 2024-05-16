@@ -35,12 +35,12 @@ jobs:
           
           cat provision-kafka-aws.tf | grep automq-vs-bucket
 
-          TIMESTAMP=$(date +%s)
-          TF_FILENAME=$TF_FILENAME
-          sed -i "s/${TF_BACKEND_KEY}/${{ secrets.TF_BACKEND_KEY }}.$TIMESTAMP/g" ${{vars.TF_FILENAME}}
-          sed -i "s/${TF_BACKEND_REGION}/${{ inputs.region }}/g" ${{vars.TF_FILENAME}}
-          sed -i "s/${AUTOMQ_ACCESS_KEY}/${{ secrets.AUTOMQ_ACCESS_KEY }}/g" ${{vars.TF_VAR_FILENAME}}
-          sed -i "s/${AUTOMQ_SECRET_KEY}/${{ secrets.AUTOMQ_SECRET_KEY }}/g" ${{vars.TF_VAR_FILENAME}}
+#          TIMESTAMP=$(date +%s)
+#          TF_FILENAME=$TF_FILENAME
+#          sed -i "s/${TF_BACKEND_KEY}/${{ secrets.TF_BACKEND_KEY }}.$TIMESTAMP/g" ${{vars.TF_FILENAME}}
+#          sed -i "s/${TF_BACKEND_REGION}/${{ inputs.region }}/g" ${{vars.TF_FILENAME}}
+#          sed -i "s/${AUTOMQ_ACCESS_KEY}/${{ secrets.AUTOMQ_ACCESS_KEY }}/g" ${{vars.TF_VAR_FILENAME}}
+#          sed -i "s/${AUTOMQ_SECRET_KEY}/${{ secrets.AUTOMQ_SECRET_KEY }}/g" ${{vars.TF_VAR_FILENAME}}
 
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v3
