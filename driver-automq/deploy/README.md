@@ -1,4 +1,4 @@
-# AutoMQ for Apache Kafka Deployments
+# AutoMQ Deployments
 
 ## Requirements
 
@@ -13,19 +13,19 @@
 
 ### Generate SSH Keys
 
-Once you're all set up with AWS and have the necessary tools installed locally, you'll need to create both a public and a private SSH key at `~/.ssh/kafka_on_s3_aws` (private) and `~/.ssh/kafka_on_s3_aws.pub` (public), respectively. You can do this by running the following command:
+Once you're all set up with AWS and have the necessary tools installed locally, you'll need to create both a public and a private SSH key at `~/.ssh/automq_aws` (private) and `~/.ssh/automq_aws.pub` (public), respectively. You can do this by running the following command:
 
 ```bash
-ssh-keygen -f ~/.ssh/kafka_on_s3_aws
+ssh-keygen -f ~/.ssh/automq_aws
 ```
 
 When prompted to enter a passphrase, simply hit `Enter` twice. Then, make sure that the keys have been created:
 
 ```bash
-ls ~/.ssh/kafka_on_s3_aws*
+ls ~/.ssh/automq_aws*
 ```
 
-Note: `~/.ssh/kafka_on_s3_aws` is the default key name used in the `terraform.tfvars` file. If you want to use a different key name, you will need to update the `terraform.tfvars` file accordingly.
+Note: `~/.ssh/automq_aws` is the default key name used in the `terraform.tfvars` file. If you want to use a different key name, you will need to update the `terraform.tfvars` file accordingly.
 
 ### Build the Project
 
@@ -37,14 +37,17 @@ mvn clean package -Dlicense.skip=true -Dcheckstyle.skip -DskipTests -Dspotless.c
 
 ### Create Resource Using Terraform
 
-Currently, we support deploying AutoMQ for Apache Kafka on AWS and Alibaba Cloud.
+Currently, we support deploying AutoMQ on AWS and Alibaba Cloud.
 
 You can create the necessary AWS resources using just a few Terraform commands:
 
 ```bash
 cd terraform-{aws,alicloud}
 terraform init
+### aws
 terraform apply
+### aws-cn
+terraform apply -var-file terraform-aws-cn.tfvars
 ```
 
 When you run `terraform apply`, you will be prompted to type `yes`. Type `yes` to continue with the installation or anything else to quit.
@@ -65,7 +68,7 @@ The `terraform.tfvars` file contains the following variables:
 
 ### Run Ansible Playbook
 
-Once the Terraform installation is complete, you can run the Ansible playbook to install the necessary software and start the **AutoMQ for Apache Kafka**:
+Once the Terraform installation is complete, you can run the Ansible playbook to install the necessary software and start the **AutoMQ**:
 
 ```bash
 ansible-playbook deploy.yaml -i terraform-{aws,alicloud}/hosts.ini
@@ -76,9 +79,9 @@ ansible-playbook deploy.yaml -i terraform-{aws,alicloud}/hosts.ini
 You can SSH into the EC2 instances using the following command:
 
 ```bash
-ssh -i ~/.ssh/kafka_on_s3_aws $(terraform output --raw user)@$(terraform output --raw server_ssh_host)
-ssh -i ~/.ssh/kafka_on_s3_aws $(terraform output --raw user)@$(terraform output --raw broker_ssh_host)
-ssh -i ~/.ssh/kafka_on_s3_aws $(terraform output --raw user)@$(terraform output --raw client_ssh_host)
+ssh -i ~/.ssh/automq_aws $(terraform output --raw user)@$(terraform output --raw server_ssh_host)
+ssh -i ~/.ssh/automq_aws $(terraform output --raw user)@$(terraform output --raw broker_ssh_host)
+ssh -i ~/.ssh/automq_aws $(terraform output --raw user)@$(terraform output --raw client_ssh_host)
 ```
 
 ### Tear Down
@@ -86,7 +89,10 @@ ssh -i ~/.ssh/kafka_on_s3_aws $(terraform output --raw user)@$(terraform output 
 To tear down the resources created by Terraform, run the following command:
 
 ```bash
+## aws
 terraform destroy
+## aws-cn
+terraform destroy -var-file terraform-aws-cn.tfvars
 ```
 
 When you run `terraform destroy`, you will be prompted to type `yes`. Type `yes` to continue with the installation or anything else to quit.

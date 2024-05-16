@@ -1,4 +1,4 @@
-public_key_path = "~/.ssh/kafka_on_s3_aws.pub"
+public_key_path = "~/.ssh/automq_aws.pub"
 region          = "cn-northwest-1"
 az              = ["cn-northwest-1a", "cn-northwest-1b"]
 
@@ -24,7 +24,7 @@ ebs_volume_type = "gp3"
 ebs_volume_size = 10
 ebs_iops = 3000
 
-access_key = "your_access_key"
-secret_key = "your_secret_key"
+access_key = "${AUTOMQ_ACCESS_KEY}"
+secret_key = "${AUTOMQ_SECRET_KEY}"
 
 aws_cn = true

@@ -15,6 +15,12 @@ terraform {
       version = "3.5.1"
     }
   }
+  backend "s3" {
+    ## terraform s3 backend configuration  ${TF_BACKEND_BUCKET}
+    bucket = "${TF_BACKEND_BUCKET}"
+    key    = "${TF_BACKEND_KEY}"
+    region = "${TF_BACKEND_REGION}"
+  }
 }
 
 variable "public_key_path" {
@@ -23,7 +29,7 @@ Path to the SSH public key to be used for authentication.
 Ensure this keypair is added to your local SSH agent so provisioners can
 connect.
 
-Example: ~/.ssh/kafka_on_s3_aws.pub
+Example: ~/.ssh/automq_aws.pub
 DESCRIPTION
 }
 
