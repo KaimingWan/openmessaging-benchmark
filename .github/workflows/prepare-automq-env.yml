@@ -39,8 +39,8 @@ jobs:
         env:
           TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
           TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}
-          TF_FILENAME: ${{ vars.TF_FILENAME }}
-          TF_VAR_FILENAME: ${{ vars.TF_VAR_FILENAME }}
+          TF_FILENAME: ${{ secrets.TF_FILENAME }}
+          TF_VAR_FILENAME: ${{ secrets.TF_VAR_FILENAME }}
 
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v3
