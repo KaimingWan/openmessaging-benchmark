@@ -25,7 +25,7 @@ jobs:
         ## Set AK/SK and terraform s3 backend info
         run: |
           echo "current path is: $(pwd)"
-          echo "Check file exists: $(ls | grep provision-kafka-aws.tf)"
+           ls -l provision-kafka-aws.tf
           sed -i 's/\${TF_BACKEND_BUCKET}/${{ secrets.TF_BACKEND_BUCKET }}/g' ${{vars.TF_FILENAME}}
           TIMESTAMP=$(date +%s)
           sed -i "s/\${TF_BACKEND_KEY}/${{ secrets.TF_BACKEND_KEY }}.$TIMESTAMP/g" ${{vars.TF_FILENAME}}
