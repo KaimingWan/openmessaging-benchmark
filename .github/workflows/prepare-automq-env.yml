@@ -34,7 +34,7 @@ jobs:
           sed -i "s/${TF_BACKEND_BUCKET}/$TF_BACKEND_BUCKET/g" provision-kafka-aws.tf
           
           echo "#####"
-          cat provision-kafka-aws.tf | grep 'automq-vs-bucket'
+          cat provision-kafka-aws.tf
 
 #          TIMESTAMP=$(date +%s)
 #          TF_FILENAME=$TF_FILENAME
