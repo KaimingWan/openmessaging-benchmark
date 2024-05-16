@@ -14,6 +14,7 @@ on:
 
 env:
   TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
+  TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}
   TF_FILENAME: ${{ vars.TF_FILENAME }}
 
 jobs:
@@ -31,14 +32,12 @@ jobs:
         run: |
           echo "current path is: $(pwd)"
            ls -l provision-kafka-aws.tf
-          sed -i "s/${TF_BACKEND_BUCKET}/$TF_BACKEND_BUCKET/g" provision-kafka-aws.tf
-          
-          echo "#####"
-          cat provision-kafka-aws.tf
+          sed -i "s/TF_BACKEND_BUCKET/$TF_BACKEND_BUCKET/g" provision-kafka-aws.tf
 
-#          TIMESTAMP=$(date +%s)
-#          TF_FILENAME=$TF_FILENAME
-#          sed -i "s/${TF_BACKEND_KEY}/${{ secrets.TF_BACKEND_KEY }}.$TIMESTAMP/g" ${{vars.TF_FILENAME}}
+
+          TIMESTAMP=$(date +%s)
+          TF_FILENAME=$TF_FILENAME
+          sed -i "s/${TF_BACKEND_KEY}/$TF_BACKEND_KEY.$TIMESTAMP/g"provision-kafka-aws.tf
 #          sed -i "s/${TF_BACKEND_REGION}/${{ inputs.region }}/g" ${{vars.TF_FILENAME}}
 #          sed -i "s/${AUTOMQ_ACCESS_KEY}/${{ secrets.AUTOMQ_ACCESS_KEY }}/g" ${{vars.TF_VAR_FILENAME}}
 #          sed -i "s/${AUTOMQ_SECRET_KEY}/${{ secrets.AUTOMQ_SECRET_KEY }}/g" ${{vars.TF_VAR_FILENAME}}
