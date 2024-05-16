@@ -24,14 +24,15 @@ jobs:
         working-directory: driver-automq/deploy/terraform-aws
         ## Set AK/SK and terraform s3 backend info
         run: |
-          echo "current path is: $(pwd)"
+          CUR_PATH=$(pwd)
+          echo "current path is: $CUR_PATH"
            ls -l provision-kafka-aws.tf
-          sed -i 's/\${TF_BACKEND_BUCKET}/${{ secrets.TF_BACKEND_BUCKET }}/g' ${{vars.TF_FILENAME}}
+          sed -i 's/\${TF_BACKEND_BUCKET}/${{ secrets.TF_BACKEND_BUCKET }}/g' $CUR_PATH/${{vars.TF_FILENAME}}
           TIMESTAMP=$(date +%s)
-          sed -i "s/\${TF_BACKEND_KEY}/${{ secrets.TF_BACKEND_KEY }}.$TIMESTAMP/g" ${{vars.TF_FILENAME}}
-          sed -i "s/\${TF_BACKEND_REGION}/${{ inputs.region }}/g" ${{vars.TF_FILENAME}}
-          sed -i "s/\${AUTOMQ_ACCESS_KEY}/${{ secrets.AUTOMQ_ACCESS_KEY }}/g" ${{vars.TF_VAR_FILENAME}}
-          sed -i "s/\${AUTOMQ_SECRET_KEY}/${{ secrets.AUTOMQ_SECRET_KEY }}/g" ${{vars.TF_VAR_FILENAME}}
+          sed -i "s/\${TF_BACKEND_KEY}/${{ secrets.TF_BACKEND_KEY }}.$TIMESTAMP/g" $CUR_PATH/${{vars.TF_FILENAME}}
+          sed -i "s/\${TF_BACKEND_REGION}/${{ inputs.region }}/g" $CUR_PATH/${{vars.TF_FILENAME}}
+          sed -i "s/\${AUTOMQ_ACCESS_KEY}/${{ secrets.AUTOMQ_ACCESS_KEY }}/g" $CUR_PATH/${{vars.TF_VAR_FILENAME}}
+          sed -i "s/\${AUTOMQ_SECRET_KEY}/${{ secrets.AUTOMQ_SECRET_KEY }}/g" $CUR_PATH/${{vars.TF_VAR_FILENAME}}
 
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v3
