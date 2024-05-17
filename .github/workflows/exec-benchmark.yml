@@ -82,29 +82,29 @@ jobs:
         working-directory: driver-automq/deploy/terraform-aws
         run: terraform plan --auto-approve -var-file terraform-aws-cn.tfvars
 
-#      - name: Apply terraform
-#        working-directory: driver-automq/deploy/terraform-aws
-#        run: terraform apply --auto-approve -var-file terraform-aws-cn.tfvars
-#
-#      - name: Install python
-#        uses: actions/setup-python@v4
-#        with:
-#          python-version: '3.10'
-#
-#      - name: Install ansible
-#        run: |
-#          python -m pip install --upgrade pip
-#          python -m pip install --user ansible
-#          python -m pip install --user jmespath
-#
-#
-#      - name: Execute Benchmark
-#        working-directory: driver-automq/deploy/terraform-aws
-#        run: |
-#          ansible-playbook deploy.yaml -i terraform-aws/hosts.ini
-#          ssh -i ~/.ssh/automq_aws $(terraform output --raw user)@$(terraform output --raw client_ssh_host) "cd /opt/benchmark && ./bin/benchmark -d ./driver-automq-for-kafka/driver.yaml ./driver-automq-for-kafka/workloads/fast-tail-read-500m.yaml"
-#          scp -i ~/.ssh/automq_aws $(terraform output --raw user)@$(terraform output --raw client_ssh_host):/opt/benchmark/*.json /tmp
-#      - name: Output Benchmark Result
-#        run: |
-#          JSON_FILE=$(ls /tmp/*.json)
-#          cat "${JSON_FILE}"
+      - name: Apply terraform
+        working-directory: driver-automq/deploy/terraform-aws
+        run: terraform apply --auto-approve -var-file terraform-aws-cn.tfvars
+
+      - name: Install python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install ansible
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --user ansible
+          python -m pip install --user jmespath
+
+
+      - name: Execute Benchmark
+        working-directory: driver-automq/deploy/terraform-aws
+        run: |
+          ansible-playbook deploy.yaml -i terraform-aws/hosts.ini
+          ssh -i ~/.ssh/automq_aws $(terraform output --raw user)@$(terraform output --raw client_ssh_host) "cd /opt/benchmark && ./bin/benchmark -d ./driver-automq-for-kafka/driver.yaml ./driver-automq-for-kafka/workloads/fast-tail-read-500m.yaml"
+          scp -i ~/.ssh/automq_aws $(terraform output --raw user)@$(terraform output --raw client_ssh_host):/opt/benchmark/*.json /tmp
+      - name: Output Benchmark Result
+        run: |
+          JSON_FILE=$(ls /tmp/*.json)
+          cat "${JSON_FILE}"

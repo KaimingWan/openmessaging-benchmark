@@ -101,8 +101,8 @@ resource "aws_vpc" "benchmark_vpc" {
   cidr_block = "10.0.0.0/16"
 
   tags = {
-    Name      = "Kafka_on_S3_Benchmark_VPC_${random_id.hash.hex}"
-    Benchmark = "Kafka_on_S3_${random_id.hash.hex}"
+    Name      = "Kafka_on_S3_Benchmark_VPC_AUTOMQVS"
+    Benchmark = "Kafka_on_S3_AUTOMQVS"
   }
 }
 
@@ -111,7 +111,7 @@ resource "aws_internet_gateway" "kafka_on_s3" {
   vpc_id = aws_vpc.benchmark_vpc.id
 
   tags = {
-    Benchmark = "Kafka_on_S3_${random_id.hash.hex}"
+    Benchmark = "Kafka_on_S3_AUTOMQVS"
   }
 }
 
@@ -131,12 +131,12 @@ resource "aws_subnet" "benchmark_subnet" {
   availability_zone       = element(var.az, count.index)
 
   tags = {
-    Benchmark = "Kafka_on_S3_${random_id.hash.hex}"
+    Benchmark = "Kafka_on_S3_AUTOMQVS"
   }
 }
 
 resource "aws_security_group" "benchmark_security_group" {
-  name   = "kafka_on_s3_${random_id.hash.hex}"
+  name   = "kafka_on_s3_AUTOMQVS"
   vpc_id = aws_vpc.benchmark_vpc.id
 
   # SSH access from anywhere
@@ -172,22 +172,22 @@ resource "aws_security_group" "benchmark_security_group" {
   }
 
   tags = {
-    Name      = "Kafka_on_S3_Benchmark_SecurityGroup_${random_id.hash.hex}"
-    Benchmark = "Kafka_on_S3_${random_id.hash.hex}"
+    Name      = "Kafka_on_S3_Benchmark_SecurityGroup_AUTOMQVS"
+    Benchmark = "Kafka_on_S3_AUTOMQVS"
   }
 }
 
 resource "aws_key_pair" "auth" {
-  key_name   = "${var.key_name}-${random_id.hash.hex}"
+  key_name   = "${var.key_name}-AUTOMQVS"
   public_key = file(var.public_key_path)
 
   tags = {
-    Benchmark = "Kafka_on_S3_${random_id.hash.hex}"
+    Benchmark = "Kafka_on_S3_AUTOMQVS"
   }
 }
 
 resource "aws_iam_role" "benchmark_role_s3" {
-  name = "kafka_on_s3_benchmark_role_s3_${random_id.hash.hex}"
+  name = "kafka_on_s3_benchmark_role_s3_AUTOMQVS"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -203,7 +203,7 @@ resource "aws_iam_role" "benchmark_role_s3" {
   })
 
   inline_policy {
-    name = "kafka_on_s3_benchmark_policy_${random_id.hash.hex}"
+    name = "kafka_on_s3_benchmark_policy_AUTOMQVS"
 
     policy = jsonencode({
       Version = "2012-10-17"
@@ -230,19 +230,19 @@ resource "aws_iam_role" "benchmark_role_s3" {
   }
 
   tags = {
-    Name      = "Kafka_on_S3_Benchmark_IAM_Role_${random_id.hash.hex}"
-    Benchmark = "Kafka_on_S3_${random_id.hash.hex}"
+    Name      = "Kafka_on_S3_Benchmark_IAM_Role_AUTOMQVS"
+    Benchmark = "Kafka_on_S3_AUTOMQVS"
   }
 }
 
 resource "aws_iam_instance_profile" "benchmark_instance_profile_s3" {
-  name = "kafka_on_s3_benchmark_instance_profile_s3_${random_id.hash.hex}"
+  name = "kafka_on_s3_benchmark_instance_profile_s3_AUTOMQVS"
 
   role = aws_iam_role.benchmark_role_s3.name
 
   tags = {
-    Name      = "Kafka_on_S3_Benchmark_IAM_InstanceProfile_${random_id.hash.hex}"
-    Benchmark = "Kafka_on_S3_${random_id.hash.hex}"
+    Name      = "Kafka_on_S3_Benchmark_IAM_InstanceProfile_AUTOMQVS"
+    Benchmark = "Kafka_on_S3_AUTOMQVS"
   }
 }
 
@@ -269,8 +269,8 @@ resource "aws_instance" "server" {
     volume_type = "gp3"
     volume_size = 16
     tags = {
-      Name            = "Kafka_on_S3_Benchmark_EBS_root_server_${count.index}_${random_id.hash.hex}"
-      Benchmark       = "Kafka_on_S3_${random_id.hash.hex}"
+      Name            = "Kafka_on_S3_Benchmark_EBS_root_server_${count.index}_AUTOMQVS"
+      Benchmark       = "Kafka_on_S3_AUTOMQVS"
       automqVendor    = "automq"
       automqClusterID = local.cluster_id
     }
@@ -282,8 +282,8 @@ resource "aws_instance" "server" {
     volume_size = var.ebs_volume_size
     iops        = var.ebs_iops
     tags = {
-      Name            = "Kafka_on_S3_Benchmark_EBS_data_server_${count.index}_${random_id.hash.hex}"
-      Benchmark       = "Kafka_on_S3_${random_id.hash.hex}"
+      Name            = "Kafka_on_S3_Benchmark_EBS_data_server_${count.index}_AUTOMQVS"
+      Benchmark       = "Kafka_on_S3_AUTOMQVS"
       automqNodeID    = local.server_kafka_ids[count.index]
       automqVendor    = "automq"
       automqClusterID = local.cluster_id
@@ -294,8 +294,8 @@ resource "aws_instance" "server" {
 
   monitoring = var.monitoring
   tags = {
-    Name            = "Kafka_on_S3_Benchmark_EC2_server_${count.index}_${random_id.hash.hex}"
-    Benchmark       = "Kafka_on_S3_${random_id.hash.hex}"
+    Name            = "Kafka_on_S3_Benchmark_EC2_server_${count.index}_AUTOMQVS"
+    Benchmark       = "Kafka_on_S3_AUTOMQVS"
     nodeID          = local.server_kafka_ids[count.index]
     automqVendor    = "automq"
     automqClusterID = local.cluster_id
@@ -325,8 +325,8 @@ resource "aws_instance" "broker" {
     volume_type = "gp3"
     volume_size = 16
     tags = {
-      Name            = "Kafka_on_S3_Benchmark_EBS_root_broker_${count.index}_${random_id.hash.hex}"
-      Benchmark       = "Kafka_on_S3_${random_id.hash.hex}"
+      Name            = "Kafka_on_S3_Benchmark_EBS_root_broker_${count.index}_AUTOMQVS"
+      Benchmark       = "Kafka_on_S3_AUTOMQVS"
       automqVendor    = "automq"
       automqClusterID = local.cluster_id
     }
@@ -338,8 +338,8 @@ resource "aws_instance" "broker" {
     volume_size = var.ebs_volume_size
     iops        = var.ebs_iops
     tags = {
-      Name                  = "Kafka_on_S3_Benchmark_EBS_data_broker_${count.index}_${random_id.hash.hex}"
-      Benchmark             = "Kafka_on_S3_${random_id.hash.hex}"
+      Name                  = "Kafka_on_S3_Benchmark_EBS_data_broker_${count.index}_AUTOMQVS"
+      Benchmark             = "Kafka_on_S3_AUTOMQVS"
       automqNodeID          = local.broker_kafka_ids[count.index]
       automqFailoverEnabled = "true"
       automqVendor          = "automq"
@@ -351,8 +351,8 @@ resource "aws_instance" "broker" {
 
   monitoring = var.monitoring
   tags = {
-    Name            = "Kafka_on_S3_Benchmark_EC2_broker_${count.index}_${random_id.hash.hex}"
-    Benchmark       = "Kafka_on_S3_${random_id.hash.hex}"
+    Name            = "Kafka_on_S3_Benchmark_EC2_broker_${count.index}_AUTOMQVS"
+    Benchmark       = "Kafka_on_S3_AUTOMQVS"
     nodeID          = local.broker_kafka_ids[count.index]
     automqVendor    = "automq"
     automqClusterID = local.cluster_id
@@ -382,25 +382,25 @@ resource "aws_instance" "client" {
     volume_type = "gp3"
     volume_size = 64
     tags = {
-      Name      = "Kafla_on_S3_Benchmark_EBS_root_client_${count.index}_${random_id.hash.hex}"
-      Benchmark = "Kafka_on_S3_${random_id.hash.hex}_client"
+      Name      = "Kafla_on_S3_Benchmark_EBS_root_client_${count.index}_AUTOMQVS"
+      Benchmark = "Kafka_on_S3_AUTOMQVS_client"
     }
   }
 
   monitoring = var.monitoring
   tags = {
-    Name      = "Kafka_on_S3_Benchmark_EC2_client_${count.index}_${random_id.hash.hex}"
-    Benchmark = "Kafka_on_S3_${random_id.hash.hex}_client"
+    Name      = "Kafka_on_S3_Benchmark_EC2_client_${count.index}_AUTOMQVS"
+    Benchmark = "Kafka_on_S3_AUTOMQVS_client"
   }
 }
 
 resource "aws_s3_bucket" "benchmark_bucket" {
-  bucket        = "kafka-on-s3-benchmark-${random_id.hash.hex}"
+  bucket        = "kafka-on-s3-benchmark-AUTOMQVS"
   force_destroy = true
 
   tags = {
-    Name      = "Kafka_on_S3_Benchmark_S3_${random_id.hash.hex}"
-    Benchmark = "Kafka_on_S3_${random_id.hash.hex}"
+    Name      = "Kafka_on_S3_Benchmark_S3_AUTOMQVS"
+    Benchmark = "Kafka_on_S3_AUTOMQVS"
   }
 }
 
