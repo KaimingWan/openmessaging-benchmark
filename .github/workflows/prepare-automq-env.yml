@@ -74,18 +74,22 @@ jobs:
 
       - name: Apply terraform
         working-directory: driver-automq/deploy/terraform-aws
+        if: ${{ !inputs.uninstall }}
         run: terraform apply -var-file terraform-aws-cn.tfvars
 
       - name: Install python
         uses: actions/setup-python@v4
+        if: ${{ !inputs.uninstall }}
         with:
           python-version: '3.10'
 
       - name: Install ansible
+        if: ${{ !inputs.uninstall }}
         run: |
           python -m pip install --upgrade pip
           python -m pip install --user ansible
           python -m pip install --user jmespath
 
       - name: Run ansible lint
+        if: ${{ !inputs.uninstall }}
         uses: ansible/ansible-lint@v6
