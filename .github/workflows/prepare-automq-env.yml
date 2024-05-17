@@ -77,7 +77,7 @@ jobs:
 
       - name: Terraform Plan
         working-directory: driver-automq/deploy/terraform-aws
-        run: terraform plan --auto-approve -var-file terraform-aws-cn.tfvars
+        run: terraform plan -var-file terraform-aws-cn.tfvars
 
 
       - name: Apply terraform
