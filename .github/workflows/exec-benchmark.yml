@@ -131,8 +131,8 @@ jobs:
 
       - name: Output Benchmark Result
         run: |
-          JSON_FILE=$(ls /tmp/*.json)
-          cat "${JSON_FILE}"
+          sudo apt-get install jq
+          JSON_FILE=$(ls /tmp/*.json | head -n 1)
 
       - name: Generate Report in Issue
         uses: actions/github-script@v6
@@ -159,17 +159,40 @@ jobs:
             // Read the content of the JSON file
             const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
             
+            // Extract specific fields
+            const workload = jsonData.workload;
+            const messageSize = jsonData.messageSize;
+            const topics = jsonData.topics;
+            const partitions = jsonData.partitions;
+            const producersPerTopic = jsonData.producersPerTopic;
+            const consumersPerTopic = jsonData.consumersPerTopic;
+            
+            // Extract latency metrics
+            const latencyAvg = jsonData.aggregatedEndToEndLatencyAvg;
+            const latency95pct = jsonData.aggregatedEndToEndLatency95pct;
+            const latency99pct = jsonData.aggregatedEndToEndLatency99pct;
+            const latency999pct = jsonData.aggregatedEndToEndLatency999pct;
+            
+            // Get current date and time
+            const now = new Date();
+            const currentDate = now.toISOString().split('T')[0];
+            const currentTime = now.toTimeString().split(' ')[0];
+            
             // Generate a Markdown formatted report
             const markdownReport = `
-              ## Benchmark Results
+              ## AutoMQ Benchmark VS. Result 🚀
+              **Report Generated:** ${currentDate} ${currentTime}
+              **Workload:** ${workload}
+              **Message Size:** ${messageSize} bytes
+              **Topics:** ${topics}
+              **Partitions:** ${partitions}
+              **Producers per Topic:** ${producersPerTopic}
+              **Consumers per Topic:** ${consumersPerTopic}
             
-              **File:** ${firstJsonFile}
+              | Streaming System | E2E LatencyAvg(ms) | E2E P95 Latency(ms) | E2E P99 Latency(ms) | E2E P99.9 Latency(ms) |
+              | ---------------- | ------------------ | ------------------- | ------------------- | --------------------- |
+              | AutoMQ           | ${latencyAvg}      | ${latency95pct}     | ${latency99pct}     | ${latency999pct}      |
             
-              \`\`\`json
-              ${JSON.stringify(jsonData, null, 2)}
-              \`\`\`
-            
-              We will review the results soon. 🚀
             `;
             
             // Post the report as a comment to the specified issue
