@@ -97,8 +97,8 @@ jobs:
           BENCHMARK_DIR="/opt/benchmark"
           
           # Delete old benchmark result files
-          rm -f /tmp/*.json
-          $SSH_BASE_CMD $SSH_HOST "rm -f $BENCHMARK_DIR/*.json"
+          sudo rm -f /tmp/*.json
+          $SSH_BASE_CMD $SSH_HOST "sudo rm -f $BENCHMARK_DIR/*.json"
           
           # Execute the benchmark test
           $SSH_BASE_CMD $SSH_HOST "cd $BENCHMARK_DIR && sudo ./bin/benchmark -d ./driver-automq/driver.yaml ./driver-automq/workloads/fast-tail-read-500m.yaml"
