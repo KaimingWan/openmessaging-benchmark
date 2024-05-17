@@ -68,14 +68,14 @@ jobs:
       - name: Uninstall Cloud Infra
         working-directory: driver-automq/deploy/terraform-aws
         if: ${{ inputs.uninstall }}
-        run: terraform destroy -var-file terraform-aws-cn.tfvars
+        run: terraform destroy --auto-approve -var-file terraform-aws-cn.tfvars
 
 
 
       - name: Apply terraform
         working-directory: driver-automq/deploy/terraform-aws
         if: ${{ !inputs.uninstall }}
-        run: terraform apply -var-file terraform-aws-cn.tfvars
+        run: terraform apply --auto-approve -var-file terraform-aws-cn.tfvars
 
       - name: Install python
         uses: actions/setup-python@v4
