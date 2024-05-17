@@ -108,3 +108,22 @@ jobs:
         run: |
           JSON_FILE=$(ls /tmp/*.json)
           cat "${JSON_FILE}"
+
+      - name: Generate Report in Issue
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const issue_number = 2;
+            const markdownReport = `
+              ## Issue Report
+              Hello, this is example report!!!
+            
+              We will review it soon. 🚀
+            `;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: markdownReport
+            });
