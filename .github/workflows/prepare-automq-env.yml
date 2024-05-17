@@ -23,8 +23,12 @@ jobs:
     runs-on: ubuntu-latest
     environment:  ${{ inputs.cloud_provider }}
     steps:
-      - name: Checkout code
+      - name: Checkout Benchmark Code
         uses: actions/checkout@v3
+
+      - name: Build Benchmark Code
+        run: |
+          mvn clean package -Dlicense.skip=true -Dcheckstyle.skip -DskipTests -Dspotless.check.skip
 
       - name: Apply Variables and Secrets
         working-directory: driver-automq/deploy/terraform-aws
@@ -70,6 +74,10 @@ jobs:
         if: ${{ inputs.uninstall }}
         run: terraform destroy --auto-approve -var-file terraform-aws-cn.tfvars
 
+
+      - name: Terraform Plan
+        working-directory: driver-automq/deploy/terraform-aws
+        run: terraform plan --auto-approve -var-file terraform-aws-cn.tfvars
 
 
       - name: Apply terraform
