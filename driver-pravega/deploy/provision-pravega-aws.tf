@@ -44,7 +44,7 @@ resource "aws_vpc" "benchmark_vpc" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = "Pravega-Benchmark-VPC-AUTOMQVS"
+    Name = "Pravega-Benchmark-VPC-automqvs"
   }
 }
 
@@ -68,7 +68,7 @@ resource "aws_subnet" "benchmark_subnet" {
 }
 
 resource "aws_security_group" "benchmark_security_group" {
-  name   = "terraform-pravega-AUTOMQVS"
+  name   = "terraform-pravega-automqvs"
   vpc_id = "${aws_vpc.benchmark_vpc.id}"
 
   # SSH access from anywhere
@@ -113,12 +113,12 @@ resource "aws_security_group" "benchmark_security_group" {
   }
 
   tags = {
-    Name = "Benchmark-Security-Group-AUTOMQVS"
+    Name = "Benchmark-Security-Group-automqvs"
   }
 }
 
 resource "aws_key_pair" "auth" {
-  key_name   = "${var.key_name}-AUTOMQVS"
+  key_name   = "${var.key_name}-automqvs"
   public_key = "${file(var.public_key_path)}"
 }
 
