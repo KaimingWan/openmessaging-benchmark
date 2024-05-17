@@ -11,7 +11,10 @@ on:
         default: cn-northwest-1
         required: true
         type: string
-
+      uninstall:
+        default: false
+        required: true
+        type: boolean
 
 
 jobs:
@@ -30,9 +33,8 @@ jobs:
           echo "current path is: $(pwd)"
            ls -l provision-kafka-aws.tf
           sed -i "s/TF_BACKEND_BUCKET/$TF_BACKEND_BUCKET/g" "$TF_FILENAME"
-          TIMESTAMP=$(date +%s)
           TF_FILENAME=$TF_FILENAME
-          sed -i "s/TF_BACKEND_KEY/$TF_BACKEND_KEY.$TIMESTAMP/g" "$TF_FILENAME"
+          sed -i "s/TF_BACKEND_KEY/$TF_BACKEND_KEY/g" "$TF_FILENAME"
           sed -i "s/TF_BACKEND_REGION/${{ inputs.region }}/g" "$TF_FILENAME"
           sed -i "s/AUTOMQ_ACCESS_KEY/${{ secrets.AUTOMQ_ACCESS_KEY }}/g" "$TF_VAR_FILENAME"
           sed -i "s/AUTOMQ_SECRET_KEY/${{ secrets.AUTOMQ_SECRET_KEY }}/g" "$TF_VAR_FILENAME"
@@ -49,12 +51,26 @@ jobs:
           aws-secret-access-key: ${{ secrets.AUTOMQ_SECRET_KEY }}
           aws-region: ${{ inputs.region }}
 
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keygen -t rsa -b 4096 -f ~/.ssh/automq_aws -q -N ""
+          chmod 600 ~/.ssh/automq_aws
+          chmod 644 ~/.ssh/automq_aws.pub
+
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v3
 
       - name: Initialize terraform
         working-directory: driver-automq/deploy/terraform-aws
         run: terraform init
+
+      - name: Uninstall Cloud Infra
+        working-directory: driver-automq/deploy/terraform-aws
+        if: ${{ inputs.uninstall }}
+        run: terraform destroy -var-file terraform-aws-cn.tfvars
+
+
 
       - name: Apply terraform
         working-directory: driver-automq/deploy/terraform-aws
