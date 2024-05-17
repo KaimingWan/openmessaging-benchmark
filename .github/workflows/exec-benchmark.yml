@@ -11,10 +11,6 @@ on:
         default: cn-northwest-1
         required: true
         type: string
-      uninstall:
-        default: false
-        required: true
-        type: boolean
 
 
 jobs:
@@ -80,7 +76,7 @@ jobs:
 
       - name: Terraform Plan
         working-directory: driver-automq/deploy/terraform-aws
-        run: terraform plan --auto-approve -var-file terraform-aws-cn.tfvars
+        run: terraform plan -var-file terraform-aws-cn.tfvars
 
       - name: Apply terraform
         working-directory: driver-automq/deploy/terraform-aws
