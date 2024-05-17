@@ -26,6 +26,14 @@ jobs:
       - name: Checkout Benchmark Code
         uses: actions/checkout@v3
 
+      - name: Cache Maven packages
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-m2        
+
       - name: Build Benchmark Code
         run: |
           mvn clean package -Dlicense.skip=true -Dcheckstyle.skip -DskipTests -Dspotless.check.skip
