@@ -97,9 +97,9 @@ jobs:
       - name: Execute Benchmark
         working-directory: driver-automq/deploy/terraform-aws
         run: |
-          ansible-playbook deploy.yaml -i terraform-aws/hosts.ini
           ssh -i ~/.ssh/automq_aws $(terraform output --raw user)@$(terraform output --raw client_ssh_host) "cd /opt/benchmark && ./bin/benchmark -d ./driver-automq-for-kafka/driver.yaml ./driver-automq-for-kafka/workloads/fast-tail-read-500m.yaml"
           scp -i ~/.ssh/automq_aws $(terraform output --raw user)@$(terraform output --raw client_ssh_host):/opt/benchmark/*.json /tmp
+
       - name: Output Benchmark Result
         run: |
           JSON_FILE=$(ls /tmp/*.json)
