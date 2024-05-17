@@ -101,7 +101,7 @@ jobs:
           $SSH_BASE_CMD $SSH_HOST "rm -f $BENCHMARK_DIR/*.json"
           
           # Execute the benchmark test
-          $SSH_BASE_CMD $SSH_HOST "cd $BENCHMARK_DIR && ./bin/benchmark -d ./driver-automq/driver.yaml ./driver-automq/workloads/fast-tail-read-500m.yaml"
+          $SSH_BASE_CMD $SSH_HOST "cd $BENCHMARK_DIR && sudo ./bin/benchmark -d ./driver-automq/driver.yaml ./driver-automq/workloads/fast-tail-read-500m.yaml"
           
           # Check if new result files have been generated
           TIMEOUT=7200  # 2-hour timeout
