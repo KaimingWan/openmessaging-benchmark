@@ -67,12 +67,6 @@ jobs:
           chmod 600 ~/.ssh/automq_aws
           chmod 644 ~/.ssh/automq_aws.pub
 
-      ## avoid Host key verification failed. Trust the new host
-      - name: Add SSH key to known_hosts
-        run: |
-          ssh-keyscan -H $(terraform output --raw client_ssh_host) >> ~/.ssh/known_hosts
-
-
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v3
 
@@ -96,8 +90,8 @@ jobs:
       - name: Execute Benchmark
         working-directory: driver-automq/deploy/terraform-aws
         run: |
-          ssh -i ~/.ssh/automq_aws $(terraform output --raw user)@$(terraform output --raw client_ssh_host) "cd /opt/benchmark && ./bin/benchmark -d ./driver-automq-for-kafka/driver.yaml ./driver-automq-for-kafka/workloads/fast-tail-read-500m.yaml"
-          scp -i ~/.ssh/automq_aws $(terraform output --raw user)@$(terraform output --raw client_ssh_host):/opt/benchmark/*.json /tmp
+          ssh  -o StrictHostKeyChecking=no -i ~/.ssh/automq_aws $(terraform output --raw user)@$(terraform output --raw client_ssh_host) "cd /opt/benchmark && ./bin/benchmark -d ./driver-automq-for-kafka/driver.yaml ./driver-automq-for-kafka/workloads/fast-tail-read-500m.yaml"
+          scp  -o StrictHostKeyChecking=no -i ~/.ssh/automq_aws $(terraform output --raw user)@$(terraform output --raw client_ssh_host):/opt/benchmark/*.json /tmp
 
       - name: Output Benchmark Result
         run: |
