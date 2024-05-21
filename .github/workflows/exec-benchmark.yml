@@ -38,23 +38,29 @@ jobs:
         run: |
           mvn clean package -Dlicense.skip=true -Dcheckstyle.skip -DskipTests -Dspotless.check.skip
 
-      - name: Apply Variables and Secrets
+      - name: Apply Variables and Secrets for Shared Files
+        run: |
+          echo "current path is: $(pwd)"
+          sed -i "s/\${AUTOMQ_ENVID}/${{ inputs.cloud_provider }}/g" "driver-nats/deploy/provision-nats-aws.tf"
+          sed -i "s/\${AUTOMQ_ENVID}/${{ inputs.cloud_provider }}/g" "driver-pravega/deploy/provision-pravega-aws.tf"
+
+
+      - name: Apply Variables and Secrets for Streaming Provider
         working-directory: driver-automq/deploy/terraform-aws
         ## Set AK/SK and terraform s3 backend info
         run: |
           echo "current path is: $(pwd)"
-           ls -l provision-kafka-aws.tf
-          sed -i "s/TF_BACKEND_BUCKET/$TF_BACKEND_BUCKET/g" "$TF_FILENAME"
+          sed -i "s/\${TF_BACKEND_BUCKET}/$TF_BACKEND_BUCKET/g" "$TF_FILENAME"
           TF_FILENAME=$TF_FILENAME
-          sed -i "s/TF_BACKEND_KEY/$TF_BACKEND_KEY/g" "$TF_FILENAME"
-          sed -i "s/TF_BACKEND_REGION/${{ inputs.region }}/g" "$TF_FILENAME"
-          sed -i "s/AUTOMQ_ACCESS_KEY/${{ secrets.AUTOMQ_ACCESS_KEY }}/g" "$TF_VAR_FILENAME"
-          sed -i "s/AUTOMQ_SECRET_KEY/${{ secrets.AUTOMQ_SECRET_KEY }}/g" "$TF_VAR_FILENAME"
+          sed -i "s/\${TF_BACKEND_KEY}/$TF_BACKEND_KEY/g" "$TF_FILENAME"
+          sed -i "s/\${TF_BACKEND_REGION}/${{ inputs.region }}/g" "$TF_FILENAME"
+          sed -i "s/\${AUTOMQ_ACCESS_KEY}/${{ secrets.AUTOMQ_ACCESS_KEY }}/g" "$TF_VAR_FILENAME"
+          sed -i "s/\${AUTOMQ_SECRET_KEY}/${{ secrets.AUTOMQ_SECRET_KEY }}/g" "$TF_VAR_FILENAME"
         env:
           TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
           TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}
-          TF_FILENAME: ${{ secrets.TF_FILENAME }}
-          TF_VAR_FILENAME: ${{ secrets.TF_VAR_FILENAME }}
+          TF_FILENAME: provision-kafka-aws.tf
+          TF_VAR_FILENAME: terraform.tfvars
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
