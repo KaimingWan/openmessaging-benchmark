@@ -127,7 +127,8 @@ jobs:
 
       - name: Install AutoMQ Cluster
         working-directory: driver-automq/deploy
-        if: ${{ !inputs.uninstall }}
+        ##todo support other streaming provider later
+        if: ${{ !inputs.uninstall }} && ${{ inputs.streaming_provider == 'automq' }}
         run: |
           ansible-playbook deploy.yaml -i terraform-aws/hosts.ini
           
