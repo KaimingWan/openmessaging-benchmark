@@ -1,14 +1,10 @@
-name: Prepare AutoMQ Cluster
+name: Prepare KRaft Apache Kafka Cluster
 
 on:
   workflow_dispatch:
     inputs:
       cloud_provider:
         default: aws-cn
-        required: true
-        type: string
-      streaming_provider:
-        default: automq
         required: true
         type: string
       region:
@@ -85,24 +81,24 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Initialize terraform
-        working-directory: driver-automq/deploy/terraform-aws
+        working-directory: driver-kafka/deploy/ssd-kraft-deployment
         run: terraform init
 
       - name: Uninstall Cloud Infra
-        working-directory: driver-automq/deploy/terraform-aws
+        working-directory: driver-kafka/deploy/ssd-kraft-deployment
         if: ${{ inputs.uninstall }}
-        run: terraform destroy --auto-approve -var-file terraform-aws-cn.tfvars
+        run: terraform destroy --auto-approve -var-file terraform.tfvars
 
 
       - name: Terraform Plan
-        working-directory: driver-automq/deploy/terraform-aws
-        run: terraform plan -var-file terraform-aws-cn.tfvars
+        working-directory: driver-kafka/deploy/ssd-kraft-deployment
+        run: terraform plan -var-file terraform.tfvars
 
 
       - name: Apply terraform
-        working-directory: driver-automq/deploy/terraform-aws
+        working-directory: driver-kafka/deploy/ssd-kraft-deployment
         if: ${{ !inputs.uninstall }}
-        run: terraform apply --auto-approve -var-file terraform-aws-cn.tfvars
+        run: terraform apply --auto-approve -var-file terraform.tfvars
 
       - name: Install python
         uses: actions/setup-python@v4
@@ -117,13 +113,9 @@ jobs:
           python -m pip install --user ansible
           python -m pip install --user jmespath
 
-      - name: Download Latest AutoMQ TGZ File
-        if: ${{ !inputs.uninstall }}
-        run: |
-          curl -L https://download.automq.com/community_edition/artifacts/automq-kafka-latest.tgz -o /tmp/automq-kafka-latest.tgz
 
-      - name: Install AutoMQ Cluster
-        working-directory: driver-automq/deploy
+      - name: Install Apache Kafka
+        working-directory: driver-kafka/deploy
         if: ${{ !inputs.uninstall }}
         run: |
           ansible-playbook deploy.yaml -i terraform-aws/hosts.ini

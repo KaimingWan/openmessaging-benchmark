@@ -7,6 +7,10 @@ on:
         default: aws-cn
         required: true
         type: string
+      streaming_provider:
+        default: automq
+        required: true
+        type: string
       region:
         default: cn-northwest-1
         required: true

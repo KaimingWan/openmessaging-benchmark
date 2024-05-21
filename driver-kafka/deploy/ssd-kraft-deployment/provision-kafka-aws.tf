@@ -77,7 +77,7 @@ resource "aws_vpc" "benchmark_vpc" {
   cidr_block = "10.0.0.0/16"
 
   tags = {
-    Name = "Kafka_Benchmark_VPC_${random_id.hash.hex}"
+    Name = "Kafka_Benchmark_VPC_${AUTOMQ_ENVID}"
   }
 }
 
@@ -102,7 +102,7 @@ resource "aws_subnet" "benchmark_subnet" {
 }
 
 resource "aws_security_group" "benchmark_security_group" {
-  name   = "terraform-kafka-${random_id.hash.hex}"
+  name   = "terraform-kafka-${AUTOMQ_ENVID}"
   vpc_id = "${aws_vpc.benchmark_vpc.id}"
 
   # SSH access from anywhere
@@ -130,12 +130,12 @@ resource "aws_security_group" "benchmark_security_group" {
   }
 
   tags = {
-    Name = "Benchmark-Security-Group-${random_id.hash.hex}"
+    Name = "Benchmark-Security-Group-${AUTOMQ_ENVID}"
   }
 }
 
 resource "aws_key_pair" "auth" {
-  key_name   = "${var.key_name}-${random_id.hash.hex}"
+  key_name   = "${var.key_name}-${AUTOMQ_ENVID}"
   public_key = "${file(var.public_key_path)}"
 }
 
