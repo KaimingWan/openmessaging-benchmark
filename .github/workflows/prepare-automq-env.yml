@@ -19,7 +19,10 @@ on:
         default: false
         required: true
         type: boolean
-
+      execute_benchmark:
+        default: false
+        required: true
+        type: boolean
 
 jobs:
   prepare_env:
@@ -45,9 +48,9 @@ jobs:
       - name: Apply Variables and Secrets for Shared Files
         run: |
           echo "current path is: $(pwd)"
-          sed -i "s/\${AUTOMQ_ENVID}/${{ inputs.cloud_provider }}/g" "driver-nats/deploy/provision-nats-aws.tf"
-          sed -i "s/\${AUTOMQ_ENVID}/${{ inputs.cloud_provider }}/g" "driver-pravega/deploy/provision-pravega-aws.tf"
-
+          sed -i "s/\${AUTOMQ_ENVID}/${{ inputs.streaming_provider }}/g" "driver-nats/deploy/provision-nats-aws.tf"
+          sed -i "s/\${AUTOMQ_ENVID}/${{ inputs.streaming_provider }}/g" "driver-pravega/deploy/provision-pravega-aws.tf"
+          sed -i "s/\${AUTOMQ_ENVID}/${{ inputs.streaming_provider }}/g" "driver-automq/deploy/terraform-aws/provision-kafka-aws.tf"
 
       - name: Apply Variables and Secrets for Streaming Provider
         working-directory: driver-automq/deploy/terraform-aws
@@ -118,7 +121,7 @@ jobs:
           python -m pip install --user jmespath
 
       - name: Download Latest AutoMQ TGZ File
-        if: ${{ !inputs.uninstall }}
+        if: ${{ !inputs.uninstall }} && ${{ inputs.streaming_provider == 'automq' }}
         run: |
           curl -L https://download.automq.com/community_edition/artifacts/automq-kafka-latest.tgz -o /tmp/automq-kafka-latest.tgz
 
@@ -127,3 +130,125 @@ jobs:
         if: ${{ !inputs.uninstall }}
         run: |
           ansible-playbook deploy.yaml -i terraform-aws/hosts.ini
+          
+
+      - name: Execute Benchmark
+        working-directory: driver-automq/deploy/terraform-aws
+        if: ${{ inputs.execute_benchmark }}
+        run: |
+          # Set up base SSH and SCP commands with common options
+          SSH_BASE_CMD="ssh -o StrictHostKeyChecking=no -i ~/.ssh/automq_aws"
+          SCP_BASE_CMD="scp -o StrictHostKeyChecking=no -i ~/.ssh/automq_aws"
+          SSH_HOST="$(terraform output --raw user)@$(terraform output --raw client_ssh_host)"
+          BENCHMARK_DIR="/opt/benchmark"
+          
+          # Delete old benchmark result files
+          sudo rm -f /tmp/*.json
+          $SSH_BASE_CMD $SSH_HOST "sudo rm -f $BENCHMARK_DIR/*.json"
+          
+          # Execute the benchmark test
+          $SSH_BASE_CMD $SSH_HOST "cd $BENCHMARK_DIR && sudo ./bin/benchmark -d ./driver-automq/driver.yaml ./driver-automq/workloads/fast-tail-read-500m.yaml"
+          
+          # Check if new result files have been generated
+          TIMEOUT=7200  # 2-hour timeout
+          ELAPSED=0
+          CHECK_INTERVAL=5  # Check every 5 seconds
+          
+          while [ $ELAPSED -lt $TIMEOUT ]; do
+            if $SSH_BASE_CMD $SSH_HOST "ls $BENCHMARK_DIR/*.json"; then
+              echo "Benchmark results are ready."
+              break
+            else
+              echo "Waiting for benchmark results..."
+              sleep $CHECK_INTERVAL
+              ELAPSED=$(($ELAPSED + $CHECK_INTERVAL))
+            fi
+          done
+          
+          if [ $ELAPSED -lt $TIMEOUT ]; then
+            # Copy the result files to local directory when they exist
+            $SCP_BASE_CMD $SSH_HOST:$BENCHMARK_DIR/*.json /tmp
+          else
+            # Exit with an error message if the timeout is reached without results
+            echo "Timeout waiting for benchmark results."
+            exit 1
+          fi
+
+
+      - name: Output Benchmark Result
+        if: ${{ inputs.execute_benchmark }}
+        run: |
+          sudo apt-get install jq
+          JSON_FILE=$(ls /tmp/*.json | head -n 1)
+
+      - name: Generate Report in Issue
+        uses: actions/github-script@v6
+        if: ${{ inputs.execute_benchmark }}
+        env:
+          JSON_FILE_PATH: /tmp  # Define the path where JSON files are stored
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            
+            const issue_number = 2;  // Specify the issue number
+            const directoryPath = process.env.JSON_FILE_PATH;
+            
+            // Read the directory and find the first JSON file
+            const files = fs.readdirSync(directoryPath).filter(file => file.endsWith('.json'));
+            if (files.length === 0) {
+              console.log("No JSON file found.");
+              return;
+            }
+            const firstJsonFile = files[0];
+            const filePath = path.join(directoryPath, firstJsonFile);
+            
+            // Read the content of the JSON file
+            const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            
+            // Extract specific fields
+            const workload = jsonData.workload;
+            const messageSize = jsonData.messageSize;
+            const topics = jsonData.topics;
+            const partitions = jsonData.partitions;
+            const producersPerTopic = jsonData.producersPerTopic;
+            const consumersPerTopic = jsonData.consumersPerTopic;
+            
+            // Extract latency metrics
+            const latencyAvg = jsonData.aggregatedEndToEndLatencyAvg;
+            const latency95pct = jsonData.aggregatedEndToEndLatency95pct;
+            const latency99pct = jsonData.aggregatedEndToEndLatency99pct;
+            const latency999pct = jsonData.aggregatedEndToEndLatency999pct;
+            
+            // Get current date and time
+            const now = new Date();
+            const currentDate = now.toISOString().split('T')[0];
+            const currentTime = now.toTimeString().split(' ')[0];
+            
+            // Generate a Markdown formatted report
+            const markdownReport = `
+              ## AutoMQ Benchmark VS. Result 🚀
+              **Report Generated:** ${currentDate} ${currentTime}
+              **Workload:** ${workload}
+              **Message Size:** ${messageSize} bytes
+              **Topics:** ${topics}
+              **Partitions:** ${partitions}
+              **Producers per Topic:** ${producersPerTopic}
+              **Consumers per Topic:** ${consumersPerTopic}
+            
+              | Streaming System | E2E LatencyAvg(ms) | E2E P95 Latency(ms) | E2E P99 Latency(ms) | E2E P99.9 Latency(ms) |
+              | ---------------- | ------------------ | ------------------- | ------------------- | --------------------- |
+              | AutoMQ           | ${latencyAvg}      | ${latency95pct}     | ${latency99pct}     | ${latency999pct}      |
+            
+            `;
+            
+            // Post the report as a comment to the specified issue
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue_number,
+              body: markdownReport
+            });
+
+
