@@ -181,6 +181,7 @@ jobs:
         run: |
           sudo apt-get install jq
           JSON_FILE=$(ls /tmp/*.json | head -n 1)
+          cat $JSON_FILE
 
       - name: Generate Report in Issue
         uses: actions/github-script@v6
@@ -220,7 +221,6 @@ jobs:
             const latencyAvg = jsonData.aggregatedEndToEndLatencyAvg;
             const latency95pct = jsonData.aggregatedEndToEndLatency95pct;
             const latency99pct = jsonData.aggregatedEndToEndLatency99pct;
-            const latency999pct = jsonData.aggregatedEndToEndLatency999pct;
             
             // Get current date and time
             const now = new Date();
@@ -238,9 +238,9 @@ jobs:
               **Producers per Topic:** ${producersPerTopic}
               **Consumers per Topic:** ${consumersPerTopic}
             
-              | Streaming System | E2E LatencyAvg(ms) | E2E P95 Latency(ms) | E2E P99 Latency(ms) | E2E P99.9 Latency(ms) |
-              | ---------------- | ------------------ | ------------------- | ------------------- | --------------------- |
-              | AutoMQ           | ${latencyAvg}      | ${latency95pct}     | ${latency99pct}     | ${latency999pct}      |
+              | Streaming System | E2E LatencyAvg(ms) | E2E P95 Latency(ms) | E2E P99 Latency(ms) | 
+              | ---------------- | ------------------ | ------------------- | ------------------- |
+              | AutoMQ           | ${latencyAvg}      | ${latency95pct}     | ${latency99pct}     | 
             
             `;
             
