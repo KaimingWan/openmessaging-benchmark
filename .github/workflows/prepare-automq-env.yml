@@ -266,45 +266,45 @@ jobs:
           workload_pattern = r'Workloads:\s*\{(.*?)\}'
           kafka_benchmark_driver_pattern = r'\[.*?\] INFO KafkaBenchmarkDriver - Initialized Kafka benchmark driver with .*? producer config:\s*\{(.*?)\}, consumer config:\s*\{(.*?)\}, topic config:\s*\{(.*?)\}, replicationFactor:\s*(\d+)'
 
-        # Read log file
-        with open(log_file_path, 'r') as file:
-          log_content = file.read()
-        
-        # Extract workload information
-          workload_match = re.search(workload_pattern, log_content, re.DOTALL)
-          workload = workload_match.group(1) if workload_match else "Not found"
+          # Read log file
+          with open(log_file_path, 'r') as file:
+            log_content = file.read()
           
-          # Extract KafkaBenchmarkDriver information
-          kafka_benchmark_driver_match = re.search(kafka_benchmark_driver_pattern, log_content)
-        if kafka_benchmark_driver_match:
-          producer_config = kafka_benchmark_driver_match.group(1).strip()
-          consumer_config = kafka_benchmark_driver_match.group(2).strip()
-          topic_config = kafka_benchmark_driver_match.group(3).strip()
-          replicationFactor = kafka_benchmark_driver_match.group(4).strip()
-        else:
-          producer_config = "Not found"
-          consumer_config = "Not found"
-          topic_config = "Not found"
-          replicationFactor = "Not found"
-        
-        # Calculate average throughput
-          throughput_pattern = r'WorkloadGenerator - Pub rate \d+\.\d+ msg/s \/ (\d+\.\d+) MB/s'
-          throughput_matches = re.findall(throughput_pattern, log_content)
-          average_throughput = sum(float(tp) for tp in throughput_matches) / len(throughput_matches) if throughput_matches else 0
+          # Extract workload information
+            workload_match = re.search(workload_pattern, log_content, re.DOTALL)
+            workload = workload_match.group(1) if workload_match else "Not found"
+            
+            # Extract KafkaBenchmarkDriver information
+            kafka_benchmark_driver_match = re.search(kafka_benchmark_driver_pattern, log_content)
+          if kafka_benchmark_driver_match:
+            producer_config = kafka_benchmark_driver_match.group(1).strip()
+            consumer_config = kafka_benchmark_driver_match.group(2).strip()
+            topic_config = kafka_benchmark_driver_match.group(3).strip()
+            replicationFactor = kafka_benchmark_driver_match.group(4).strip()
+          else:
+            producer_config = "Not found"
+            consumer_config = "Not found"
+            topic_config = "Not found"
+            replicationFactor = "Not found"
           
+          # Calculate average throughput
+            throughput_pattern = r'WorkloadGenerator - Pub rate \d+\.\d+ msg/s \/ (\d+\.\d+) MB/s'
+            throughput_matches = re.findall(throughput_pattern, log_content)
+            average_throughput = sum(float(tp) for tp in throughput_matches) / len(throughput_matches) if throughput_matches else 0
+            
           # Prepare data for output
           extracted_data = {
-        "workload_config": workload,
-        "producer_config": producer_config,
-        "consumer_config": consumer_config,
-        "topic_config": topic_config,
-        "replication_factor": replicationFactor,
-        "average_throughput": average_throughput
-        }
-
-        # Write to output file
-        with open(output_file_path, 'w') as outfile:
-          json.dump(extracted_data, outfile, indent=4)
+            "workload_config": workload,
+            "producer_config": producer_config,
+            "consumer_config": consumer_config,
+            "topic_config": topic_config,
+            "replication_factor": replicationFactor,
+            "average_throughput": average_throughput
+          }
+  
+          # Write to output file
+          with open(output_file_path, 'w') as outfile:
+            json.dump(extracted_data, outfile, indent=4)
           EOF
           
           cat /tmp/extracted_data.json
