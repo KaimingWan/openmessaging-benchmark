@@ -293,6 +293,8 @@ jobs:
           with open(output_file_path, 'w') as outfile:
               json.dump(extracted_data, outfile, indent=4)
           EOF
+          
+          cat /tmp/extracted_data.json
 
 
       - name: Upload Extracted Data
