@@ -207,6 +207,7 @@ jobs:
           # Delete old benchmark result files
           sudo rm -f /tmp/*.json
           $SSH_BASE_CMD $SSH_HOST "sudo rm -f $BENCHMARK_DIR/*.json"
+          $SSH_BASE_CMD $SSH_HOST "sudo rm -f $BENCHMARK_DIR/benchmark-worker.log"
           
           # Execute the benchmark test
           $SSH_BASE_CMD $SSH_HOST "cd $BENCHMARK_DIR && sudo ./bin/benchmark -d ./driver-automq/driver.yaml ./driver-automq/workloads/fast-tail-read-500m.yaml"
@@ -230,6 +231,7 @@ jobs:
           if [ $ELAPSED -lt $TIMEOUT ]; then
             # Copy the result files to local directory when they exist
             $SCP_BASE_CMD $SSH_HOST:$BENCHMARK_DIR/*.json /tmp
+            $SCP_BASE_CMD $SSH_HOST:$BENCHMARK_DIR/benchmark-worker.log /tmp
           else
             # Exit with an error message if the timeout is reached without results
             echo "Timeout waiting for benchmark results."
@@ -252,14 +254,12 @@ jobs:
 
       - name: Extract Information from Benchmark Worker Log
         if: ${{ inputs.execute_benchmark }}
-        env:
-          LOG_FILE_PATH: /opt/benchmark/benchmark-worker.log
         run: |
           python3 - <<'EOF'
           import re
           import json
           
-          log_file_path = "${{ env.LOG_FILE_PATH }}"
+          log_file_path = "/tmp/benchmark-worker.log"
           output_file_path = "/tmp/extracted_data.json"
           
           # Define regex patterns
