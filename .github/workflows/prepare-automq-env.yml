@@ -51,8 +51,6 @@ jobs:
           sed -i "s/\${AUTOMQ_ENVID}/${{ inputs.streaming_provider }}/g" "driver-nats/deploy/provision-nats-aws.tf"
           sed -i "s/\${AUTOMQ_ENVID}/${{ inputs.streaming_provider }}/g" "driver-pravega/deploy/provision-pravega-aws.tf"
           sed -i "s/\${AUTOMQ_ENVID}/${{ inputs.streaming_provider }}/g" "driver-automq/deploy/terraform-aws/provision-kafka-aws.tf"
-          ## Test
-          cat driver-pravega/deploy/provision-pravega-aws.tf | grep automq
 
       - name: Apply Variables and Secrets for Streaming Provider
         working-directory: driver-automq/deploy/terraform-aws
@@ -61,13 +59,10 @@ jobs:
           echo "current path is: $(pwd)"
           sed -i "s/\${TF_BACKEND_BUCKET}/$TF_BACKEND_BUCKET/g" "$TF_FILENAME"
           TF_FILENAME=$TF_FILENAME
-          ### todo set streaming privider aware key
           sed -i "s/\${TF_BACKEND_KEY}/$TF_BACKEND_KEY/g" "$TF_FILENAME"
           sed -i "s/\${TF_BACKEND_REGION}/${{ inputs.region }}/g" "$TF_FILENAME"
           sed -i "s/\${AUTOMQ_ACCESS_KEY}/${{ secrets.AUTOMQ_ACCESS_KEY }}/g" "$TF_VAR_FILENAME"
           sed -i "s/\${AUTOMQ_SECRET_KEY}/${{ secrets.AUTOMQ_SECRET_KEY }}/g" "$TF_VAR_FILENAME"
-          ## test
-          cat $TF_FILENAME | grep cn-northwest-1
         env:
           TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
           TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}-${{ inputs.streaming_provider }}
