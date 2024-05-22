@@ -346,9 +346,6 @@ jobs:
             // Read the content of the JSON file
             const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
             
-            // Read the content of the JSON file
-            const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-            
             // Extract specific fields
             const workload = jsonData.workload;
             const messageSize = jsonData.messageSize;
