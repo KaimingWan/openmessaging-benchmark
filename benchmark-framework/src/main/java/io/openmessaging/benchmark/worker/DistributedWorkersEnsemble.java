@@ -17,13 +17,9 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.joining;
 
 import com.beust.jcommander.internal.Maps;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import io.openmessaging.benchmark.driver.kafka.Config;
 import io.openmessaging.benchmark.utils.ListPartition;
 import io.openmessaging.benchmark.worker.commands.ConsumerAssignment;
 import io.openmessaging.benchmark.worker.commands.CountersStats;
@@ -34,17 +30,8 @@ import io.openmessaging.benchmark.worker.commands.TopicSubscription;
 import io.openmessaging.benchmark.worker.commands.TopicsInfo;
 import java.io.File;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.producer.ProducerConfig;
-import org.apache.kafka.common.serialization.ByteArrayDeserializer;
-import org.apache.kafka.common.serialization.ByteArraySerializer;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,14 +45,14 @@ public class DistributedWorkersEnsemble implements Worker {
     private int numberOfUsedProducerWorkers;
 
     public DistributedWorkersEnsemble(
-            List<Worker> workers, boolean extraConsumerWorkers, boolean separateWorkers) {
+        List<Worker> workers, boolean extraConsumerWorkers, boolean separateWorkers) {
         this.workers = unmodifiableList(workers);
         leader = workers.get(0);
         if (separateWorkers) {
             Preconditions.checkArgument(workers.size() > 1);
             int numberOfProducerWorkers = getNumberOfProducerWorkers(workers, extraConsumerWorkers);
             List<List<Worker>> partitions =
-                    Lists.partition(Lists.reverse(workers), workers.size() - numberOfProducerWorkers);
+                Lists.partition(Lists.reverse(workers), workers.size() - numberOfProducerWorkers);
             this.producerWorkers = partitions.get(1);
             this.consumerWorkers = partitions.get(0);
         } else {
@@ -74,11 +61,11 @@ public class DistributedWorkersEnsemble implements Worker {
         }
 
         log.info(
-                "Workers list - producers: [{}]",
-                producerWorkers.stream().map(Worker::id).collect(joining(",")));
+            "Workers list - producers: [{}]",
+            producerWorkers.stream().map(Worker::id).collect(joining(",")));
         log.info(
-                "Workers list - consumers: {}",
-                consumerWorkers.stream().map(Worker::id).collect(joining(",")));
+            "Workers list - consumers: {}",
+            consumerWorkers.stream().map(Worker::id).collect(joining(",")));
 
         Runtime.getRuntime().addShutdownHook(shutdownHook);
     }
@@ -92,60 +79,17 @@ public class DistributedWorkersEnsemble implements Worker {
         return extraConsumerWorkers ? (workers.size() + 2) / 3 : workers.size() / 2;
     }
 
-    private Config config;
-    private Properties topicProperties;
-    private Properties producerProperties;
-    private Properties consumerProperties;
-
-    private static final ObjectMapper mapper =
-        new ObjectMapper(new YAMLFactory())
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
     @Override
     public void initializeDriver(File configurationFile) throws IOException {
-        config = mapper.readValue(configurationFile, Config.class);
-
-        Properties commonProperties = new Properties();
-        commonProperties.load(new StringReader(config.commonConfig));
-
-        producerProperties = new Properties();
-        commonProperties.forEach((key, value) -> producerProperties.put(key, value));
-        producerProperties.load(new StringReader(config.producerConfig));
-        producerProperties.put(
-            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-        producerProperties.put(
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
-
-        consumerProperties = new Properties();
-        commonProperties.forEach((key, value) -> consumerProperties.put(key, value));
-        consumerProperties.load(new StringReader(config.consumerConfig));
-        consumerProperties.put(
-            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-        consumerProperties.put(
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
-
-        topicProperties = new Properties();
-        topicProperties.load(new StringReader(config.topicConfig));
-
-        log.info(
-            "Initialized Kafka benchmark driver with common config: {}, producer config: {},"
-                + " consumer config: {}, topic config: {}, replicationFactor: {}",
-            commonProperties,
-            producerProperties,
-            consumerProperties,
-            topicProperties,
-            config.replicationFactor);
-
-
         workers.parallelStream()
-                .forEach(
-                        w -> {
-                            try {
-                                w.initializeDriver(configurationFile);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
+            .forEach(
+                w -> {
+                    try {
+                        w.initializeDriver(configurationFile);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 
     @Override
@@ -157,7 +101,7 @@ public class DistributedWorkersEnsemble implements Worker {
     @Override
     public void createProducers(List<String> topics) {
         List<List<String>> topicsPerProducer =
-                ListPartition.partitionList(topics, producerWorkers.size());
+            ListPartition.partitionList(topics, producerWorkers.size());
         Map<Worker, List<String>> topicsPerProducerMap = Maps.newHashMap();
         int i = 0;
         for (List<String> assignedTopics : topicsPerProducer) {
@@ -166,18 +110,18 @@ public class DistributedWorkersEnsemble implements Worker {
 
         // Number of actually used workers might be less than available workers
         numberOfUsedProducerWorkers =
-                (int) topicsPerProducerMap.values().stream().filter(t -> !t.isEmpty()).count();
+            (int) topicsPerProducerMap.values().stream().filter(t -> !t.isEmpty()).count();
         log.debug(
-                "Producing worker count: {} of {}", numberOfUsedProducerWorkers, producerWorkers.size());
+            "Producing worker count: {} of {}", numberOfUsedProducerWorkers, producerWorkers.size());
         topicsPerProducerMap.entrySet().parallelStream()
-                .forEach(
-                        e -> {
-                            try {
-                                e.getKey().createProducers(e.getValue());
-                            } catch (IOException ex) {
-                                throw new RuntimeException(ex);
-                            }
-                        });
+            .forEach(
+                e -> {
+                    try {
+                        e.getKey().createProducers(e.getValue());
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                });
     }
 
     @Override
@@ -187,27 +131,27 @@ public class DistributedWorkersEnsemble implements Worker {
         log.debug("Setting worker assigned publish rate to {} msgs/sec", newRate);
         // Reduce the publish rate across all the brokers
         producerWorkers.parallelStream()
-                .forEach(
-                        w -> {
-                            try {
-                                w.startLoad(producerWorkAssignment.withPublishRate(newRate));
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
+            .forEach(
+                w -> {
+                    try {
+                        w.startLoad(producerWorkAssignment.withPublishRate(newRate));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 
     @Override
     public void probeProducers() throws IOException {
         producerWorkers.parallelStream()
-                .forEach(
-                        w -> {
-                            try {
-                                w.probeProducers();
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
+            .forEach(
+                w -> {
+                    try {
+                        w.probeProducers();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 
     @Override
@@ -215,14 +159,14 @@ public class DistributedWorkersEnsemble implements Worker {
         double newRate = publishRate / numberOfUsedProducerWorkers;
         log.debug("Adjusting producer publish rate to {} msgs/sec", newRate);
         producerWorkers.parallelStream()
-                .forEach(
-                        w -> {
-                            try {
-                                w.adjustPublishRate(newRate);
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
+            .forEach(
+                w -> {
+                    try {
+                        w.adjustPublishRate(newRate);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 
     @Override
@@ -238,34 +182,34 @@ public class DistributedWorkersEnsemble implements Worker {
     @Override
     public void pauseConsumers() throws IOException {
         consumerWorkers.parallelStream()
-                .forEach(
-                        w -> {
-                            try {
-                                w.pauseConsumers();
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
+            .forEach(
+                w -> {
+                    try {
+                        w.pauseConsumers();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 
     @Override
     public void resumeConsumers() throws IOException {
         consumerWorkers.parallelStream()
-                .forEach(
-                        w -> {
-                            try {
-                                w.resumeConsumers();
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
+            .forEach(
+                w -> {
+                    try {
+                        w.resumeConsumers();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 
     @Override
     public void createConsumers(ConsumerAssignment overallConsumerAssignment) {
         List<List<TopicSubscription>> subscriptionsPerConsumer =
-                ListPartition.partitionList(
-                        overallConsumerAssignment.topicsSubscriptions, consumerWorkers.size());
+            ListPartition.partitionList(
+                overallConsumerAssignment.topicsSubscriptions, consumerWorkers.size());
         Map<Worker, ConsumerAssignment> topicsPerWorkerMap = Maps.newHashMap();
         int i = 0;
         for (List<TopicSubscription> tsl : subscriptionsPerConsumer) {
@@ -274,69 +218,69 @@ public class DistributedWorkersEnsemble implements Worker {
             topicsPerWorkerMap.put(consumerWorkers.get(i++), individualAssignment);
         }
         topicsPerWorkerMap.entrySet().parallelStream()
-                .forEach(
-                        e -> {
-                            try {
-                                e.getKey().createConsumers(e.getValue());
-                            } catch (IOException ex) {
-                                throw new RuntimeException(ex);
-                            }
-                        });
+            .forEach(
+                e -> {
+                    try {
+                        e.getKey().createConsumers(e.getValue());
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                });
     }
 
     @Override
     public PeriodStats getPeriodStats() {
         return workers.parallelStream()
-                .map(
-                        w -> {
-                            try {
-                                return w.getPeriodStats();
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        })
-                .reduce(new PeriodStats(), PeriodStats::plus);
+            .map(
+                w -> {
+                    try {
+                        return w.getPeriodStats();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+            .reduce(new PeriodStats(), PeriodStats::plus);
     }
 
     @Override
     public CumulativeLatencies getCumulativeLatencies() {
         return workers.parallelStream()
-                .map(
-                        w -> {
-                            try {
-                                return w.getCumulativeLatencies();
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        })
-                .reduce(new CumulativeLatencies(), CumulativeLatencies::plus);
+            .map(
+                w -> {
+                    try {
+                        return w.getCumulativeLatencies();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+            .reduce(new CumulativeLatencies(), CumulativeLatencies::plus);
     }
 
     @Override
     public CountersStats getCountersStats() throws IOException {
         return workers.parallelStream()
-                .map(
-                        w -> {
-                            try {
-                                return w.getCountersStats();
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        })
-                .reduce(new CountersStats(), CountersStats::plus);
+            .map(
+                w -> {
+                    try {
+                        return w.getCountersStats();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
+            .reduce(new CountersStats(), CountersStats::plus);
     }
 
     @Override
     public void resetStats() throws IOException {
         workers.parallelStream()
-                .forEach(
-                        w -> {
-                            try {
-                                w.resetStats();
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                        });
+            .forEach(
+                w -> {
+                    try {
+                        w.resetStats();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
     }
 
     @Override
