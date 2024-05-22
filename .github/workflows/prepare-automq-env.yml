@@ -255,44 +255,45 @@ jobs:
         env:
           LOG_FILE_PATH: /opt/benchmark/benchmark-worker.log
         run: |
-          python3 <<EOF
-              import re
-              import json
-              
-              log_file_path = "${{ env.LOG_FILE_PATH }}"
-              output_file_path = "/tmp/extracted_data.json"
-              
-              # Define regex patterns
-              workload_pattern = r'Workloads:\s*\{(.*?)\}'
-              consumer_config_pattern = r'ConsumerConfig - ConsumerConfig values:\s*(.*?)\}'
-              common_config_pattern = r'Initialized Kafka benchmark driver with common config:\s*\{(.*?)\}'
-              throughput_pattern = r'WorkloadGenerator - Pub rate \d+\.\d+ msg/s \/ (\d+\.\d+) MB/s'
-            
-              # Read log file
-              with open(log_file_path, 'r') as file:
+          python3 - <<'EOF'
+          import re
+          import json
+          
+          log_file_path = "${{ env.LOG_FILE_PATH }}"
+          output_file_path = "/tmp/extracted_data.json"
+          
+          # Define regex patterns
+          workload_pattern = r'Workloads:\s*\{(.*?)\}'
+          consumer_config_pattern = r'ConsumerConfig - ConsumerConfig values:\s*(.*?)\}'
+          common_config_pattern = r'Initialized Kafka benchmark driver with common config:\s*\{(.*?)\}'
+          throughput_pattern = r'WorkloadGenerator - Pub rate \d+\.\d+ msg/s \/ (\d+\.\d+) MB/s'
+          
+          # Read log file
+          with open(log_file_path, 'r') as file:
               log_content = file.read()
-            
-              # Extract information
-              workload_match = re.search(workload_pattern, log_content, re.DOTALL)
-              consumer_config_match = re.search(consumer_config_pattern, log_content, re.DOTALL)
-              common_config_match = re.search(common_config_pattern, log_content, re.DOTALL)
-              throughput_matches = re.findall(throughput_pattern, log_content)
-              
-              # Calculate average throughput
-              average_throughput = sum(float(tp) for tp in throughput_matches) / len(throughput_matches)
-              
-              # Prepare data for output
-              extracted_data = {
-                "workload": workload_match.group(1) if workload_match else "Not found",
-                "consumer_config": consumer_config_match.group(1) if consumer_config_match else "Not found",
-                "common_config": common_config_match.group(1) if common_config_match else "Not found",
-                "average_throughput": average_throughput
-              }
-            
-              # Write to output file
-              with open(output_file_path, 'w') as outfile:
-              json.dump(extracted_data, outfile)
+          
+          # Extract information
+          workload_match = re.search(workload_pattern, log_content, re.DOTALL)
+          consumer_config_match = re.search(consumer_config_pattern, log_content, re.DOTALL)
+          common_config_match = re.search(common_config_pattern, log_content, re.DOTALL)
+          throughput_matches = re.findall(throughput_pattern, log_content)
+          
+          # Calculate average throughput
+          average_throughput = sum(float(tp) for tp in throughput_matches) / len(throughput_matches) if throughput_matches else 0
+          
+          # Prepare data for output
+          extracted_data = {
+              "workload": workload_match.group(1) if workload_match else "Not found",
+              "consumer_config": consumer_config_match.group(1) if consumer_config_match else "Not found",
+              "common_config": common_config_match.group(1) if common_config_match else "Not found",
+              "average_throughput": average_throughput
+          }
+          
+          # Write to output file
+          with open(output_file_path, 'w') as outfile:
+              json.dump(extracted_data, outfile, indent=4)
           EOF
+
 
       - name: Upload Extracted Data
         if: ${{ inputs.execute_benchmark }}
