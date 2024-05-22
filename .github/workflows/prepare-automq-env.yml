@@ -398,7 +398,7 @@ jobs:
             
               **Configurations and Throughput:**
               **Workload Configuration:**
-              \`\`\`${workerload_config}\`\`\`
+              \`\`\`${workload_config}\`\`\`
               **Producer Configuration:**
               \`\`\`${producer_config}\`\`\`
               **Consumer Configuration:**
@@ -407,7 +407,7 @@ jobs:
               \`\`\`${topic_config}\`\`\`
               **Replication Factor:**
               \`\`\`${replication_factor}\`\`\`
-              **Average Throughput:** ${averageThroughput} MB/s
+              **Average Throughput:** ${average_throughput} MB/s
             
               | Streaming System | E2E LatencyAvg(ms) | E2E P95 Latency(ms) | E2E P99 Latency(ms) | Baseline Cost | Usage Cost | Total Cost |
               | ---------------- | ------------------ | ------------------- | ------------------- | ------------ | ---------- | ---------- |
