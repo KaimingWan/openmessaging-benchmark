@@ -319,6 +319,9 @@ jobs:
         env:
           JSON_FILE_PATH: /tmp
           EXTRACTED_DATA_PATH: /tmp/extracted_data
+          BASELINE_COST: ${{ steps.extract_costs.outputs.baseline_cost }}
+          USAGE_COST: ${{ steps.extract_costs.outputs.usage_cost }}
+          TOTAL_COST: ${{ steps.extract_costs.outputs.total_cost }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -340,8 +343,6 @@ jobs:
             
             // Read the content of the JSON file
             const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-            
-            console.log(jsonData);
             
             // Extract specific fields
             const workload = jsonData.workload;
@@ -370,12 +371,10 @@ jobs:
               average_throughput
             } = extractedData;
             
-            
-            
             // Costs are directly used from the steps
-            const baselineCost = '${{ steps.extract_costs.outputs.baseline_cost }}';
-            const usageCost = '${{ steps.extract_costs.outputs.usage_cost }}';
-            const totalCost = '${{ steps.extract_costs.outputs.total_cost }}';
+            const baselineCost = process.env.BASELINE_COST;
+            const usageCost = process.env.USAGE_COST;
+            const totalCost = process.env.TOTAL_COST;
             
             // Get current date and time
             const now = new Date();
@@ -384,33 +383,43 @@ jobs:
             
             // Generate a Markdown formatted report
             const markdownReport = `
-              ## AutoMQ Benchmark VS. Result 🚀
-              **Report Generated:** ${currentDate} ${currentTime}
-              **Workload:** ${workload}
-              **Message Size:** ${messageSize} bytes
-              **Topics:** ${topics}
-              **Partitions:** ${partitions}
-              **Producers per Topic:** ${producersPerTopic}
-              **Consumers per Topic:** ${consumersPerTopic}
-            
-              **Configurations and Throughput:**
-              **Workload Configuration:**
-              \`\`\`${workload_config}\`\`\`
-              **Producer Configuration:**
-              \`\`\`${producer_config}\`\`\`
-              **Consumer Configuration:**
-              \`\`\`${consumer_config}\`\`\`
-              **Topic Configuration:**
-              \`\`\`${topic_config}\`\`\`
-              **Replication Factor:**
-              \`\`\`${replication_factor}\`\`\`
-              **Average Throughput:** ${average_throughput} MB/s
-            
-              | Streaming System | E2E LatencyAvg(ms) | E2E P95 Latency(ms) | E2E P99 Latency(ms) | Baseline Cost | Usage Cost | Total Cost |
-              | ---------------- | ------------------ | ------------------- | ------------------- | ------------ | ---------- | ---------- |
-              | AutoMQ           | ${latencyAvg}      | ${latency95pct}     | ${latency99pct}     | \$${baselineCost} | \$${usageCost} | \$${totalCost} |
+                ## AutoMQ Benchmark VS. Result 🚀
+                **Report Generated:** ${currentDate} ${currentTime}
+                **Workload:** ${workload}
+                **Message Size:** ${messageSize} bytes
+                **Topics:** ${topics}
+                **Partitions:** ${partitions}
+                **Producers per Topic:** ${producersPerTopic}
+                **Consumers per Topic:** ${consumersPerTopic}
+          
+                **Configurations and Throughput:**
+                **Workload Configuration:**
+                \`\`\`json
+                ${JSON.stringify(workload_config, null, 2)}
+                \`\`\`
+                **Producer Configuration:**
+                \`\`\`json
+                ${JSON.stringify(producer_config, null, 2)}
+                \`\`\`
+                **Consumer Configuration:**
+                \`\`\`json
+                ${JSON.stringify(consumer_config, null, 2)}
+                \`\`\`
+                **Topic Configuration:**
+                \`\`\`json
+                ${JSON.stringify(topic_config, null, 2)}
+                \`\`\`
+                **Replication Factor:**
+                \`\`\`json
+                ${JSON.stringify(replication_factor, null, 2)}
+                \`\`\`
+                **Average Throughput:** ${average_throughput} MB/s
+          
+                | Streaming System | E2E LatencyAvg(ms) | E2E P95 Latency(ms) | E2E P99 Latency(ms) | Baseline Cost | Usage Cost | Total Cost |
+                | ---------------- | ------------------ | ------------------- | ------------------- | ------------- | ---------- | ---------- |
+                | AutoMQ           | ${latencyAvg}      | ${latency95pct}     | ${latency99pct}     | \$${baselineCost} | \$${usageCost} | \$${totalCost} |
             `;
-            
+      
             // Post the report as a comment to the specified issue
             await github.rest.issues.createComment({
               owner: context.repo.owner,
