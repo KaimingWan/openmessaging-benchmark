@@ -84,6 +84,62 @@ jobs:
           chmod 600 ~/.ssh/automq_aws
           chmod 644 ~/.ssh/automq_aws.pub
 
+      - name: Install python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Setup Infra Cost
+        run: |
+          # Downloads the CLI based on your OS/arch and puts it in /usr/local/bin
+          curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
+          infracost --version
+          infracost configure set api_key ${{ secrets.INFRA_COST_API_KEY }}
+
+      - name: AWS Cost Estimate
+        run: |
+          if [ "${{ inputs.streaming_provider }}" == "automq" ]; then
+                echo "[INFO] Provider is AutoMQ"
+                cd  driver-automq/deploy/terraform-aws
+          fi
+          infracost breakdown --path . >> /tmp/aws-cost.txt
+          COST_DETAIL_FILE=/tmp/aws-cost.txt
+          cat $COST_DETAIL_FILE
+
+      - name: Read and extract costs from file
+        id: extract_costs
+        run: |
+          import re
+          
+          with open('/tmp/aws-cost.txt', 'r') as file:
+           output = file.read()
+          
+          baseline_cost_match = re.search(r'Baseline cost\s*┃\s*\$(\d+)', output)
+          usage_cost_match = re.search(r'Usage cost\*\s*┃\s*\$(\d+)', output)
+          total_cost_match = re.search(r'Total cost\s*┃\s*\$(\d+)', output)
+          
+          if baseline_cost_match and usage_cost_match and total_cost_match:
+           baseline_cost = baseline_cost_match.group(1)
+           usage_cost = usage_cost_match.group(1)
+           total_cost = total_cost_match.group(1)
+          
+           print(f"Baseline cost: ${baseline_cost}")
+           print(f"Usage cost: ${usage_cost}")
+           print(f"Total cost: ${total_cost}")
+          
+           with open(os.getenv('GITHUB_OUTPUT'), 'a') as output_file:
+               output_file.write(f'baseline_cost={baseline_cost}\n')
+               output_file.write(f'usage_cost={usage_cost}\n')
+               output_file.write(f'total_cost={total_cost}\n')
+          else:
+           print("Can't extract cost info")
+
+      - name: Output Costs
+        run: |
+          echo "Baseline cost: ${{ steps.extract_costs.outputs.baseline_cost }}"
+          echo "Usage cost: ${{ steps.extract_costs.outputs.usage_cost }}"
+          echo "Total cost: ${{ steps.extract_costs.outputs.total_cost }}"
+
       - name: Setup terraform
         uses: hashicorp/setup-terraform@v3
 
@@ -106,12 +162,6 @@ jobs:
         working-directory: driver-automq/deploy/terraform-aws
         if: ${{ !inputs.uninstall }}
         run: terraform apply --auto-approve -var-file terraform-aws-cn.tfvars
-
-      - name: Install python
-        uses: actions/setup-python@v4
-        if: ${{ !inputs.uninstall }}
-        with:
-          python-version: '3.10'
 
       - name: Install ansible
         if: ${{ !inputs.uninstall && !inputs.execute_benchmark }}
