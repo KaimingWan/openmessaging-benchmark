@@ -337,6 +337,8 @@ jobs:
             // Read the content of the JSON file
             const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
             
+            cat jsonData
+            
             // Extract specific fields
             const workload = jsonData.workload;
             const messageSize = jsonData.messageSize;
@@ -351,7 +353,7 @@ jobs:
             const latency99pct = jsonData.aggregatedEndToEndLatency99pct;
             const latency999pct = jsonData.aggregatedEndToEndLatency999pct;
             
-                        // Read extracted data
+            // Read extracted data
             const extractedData = JSON.parse(fs.readFileSync(extractedDataPath, 'utf8'));
             
             // Extract specific fields from benchmark log json and extracted data
