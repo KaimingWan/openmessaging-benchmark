@@ -41,7 +41,7 @@ Configuration:
   Loggers:
     Root:
       level: info
-      additivity: true
+      additivity: false
       AppenderRef:
         - ref: Console
         - ref: RollingFile

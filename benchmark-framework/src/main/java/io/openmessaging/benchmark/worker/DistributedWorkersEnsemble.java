@@ -17,9 +17,13 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.stream.Collectors.joining;
 
 import com.beust.jcommander.internal.Maps;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import io.openmessaging.benchmark.driver.kafka.Config;
 import io.openmessaging.benchmark.utils.ListPartition;
 import io.openmessaging.benchmark.worker.commands.ConsumerAssignment;
 import io.openmessaging.benchmark.worker.commands.CountersStats;
@@ -30,8 +34,17 @@ import io.openmessaging.benchmark.worker.commands.TopicSubscription;
 import io.openmessaging.benchmark.worker.commands.TopicsInfo;
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
+import org.apache.kafka.common.serialization.ByteArraySerializer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,8 +92,51 @@ public class DistributedWorkersEnsemble implements Worker {
         return extraConsumerWorkers ? (workers.size() + 2) / 3 : workers.size() / 2;
     }
 
+    private Config config;
+    private Properties topicProperties;
+    private Properties producerProperties;
+    private Properties consumerProperties;
+
+    private static final ObjectMapper mapper =
+        new ObjectMapper(new YAMLFactory())
+            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
     @Override
     public void initializeDriver(File configurationFile) throws IOException {
+        config = mapper.readValue(configurationFile, Config.class);
+
+        Properties commonProperties = new Properties();
+        commonProperties.load(new StringReader(config.commonConfig));
+
+        producerProperties = new Properties();
+        commonProperties.forEach((key, value) -> producerProperties.put(key, value));
+        producerProperties.load(new StringReader(config.producerConfig));
+        producerProperties.put(
+            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+        producerProperties.put(
+            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, ByteArraySerializer.class.getName());
+
+        consumerProperties = new Properties();
+        commonProperties.forEach((key, value) -> consumerProperties.put(key, value));
+        consumerProperties.load(new StringReader(config.consumerConfig));
+        consumerProperties.put(
+            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        consumerProperties.put(
+            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
+
+        topicProperties = new Properties();
+        topicProperties.load(new StringReader(config.topicConfig));
+
+        log.info(
+            "Initialized Kafka benchmark driver with common config: {}, producer config: {},"
+                + " consumer config: {}, topic config: {}, replicationFactor: {}",
+            commonProperties,
+            producerProperties,
+            consumerProperties,
+            topicProperties,
+            config.replicationFactor);
+
+
         workers.parallelStream()
                 .forEach(
                         w -> {
