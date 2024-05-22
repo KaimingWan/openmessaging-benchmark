@@ -114,7 +114,7 @@ jobs:
           import os
           import sys
           
-          with open('cost.log', 'r') as file:
+          with open('/tmp/aws-cost.txt', 'r') as file:
               output = file.read()
           
           print("File content:")
