@@ -109,30 +109,36 @@ jobs:
       - name: Read and extract costs from file
         id: extract_costs
         run: |
+          python - <<'EOF'
           import re
-          
+          import os
+  
+          # 读取文件内容
           with open('/tmp/aws-cost.txt', 'r') as file:
-           output = file.read()
-          
+            output = file.read()
+  
+          # 使用正则表达式提取Baseline cost, Usage cost 和 Total cost
           baseline_cost_match = re.search(r'Baseline cost\s*┃\s*\$(\d+)', output)
           usage_cost_match = re.search(r'Usage cost\*\s*┃\s*\$(\d+)', output)
           total_cost_match = re.search(r'Total cost\s*┃\s*\$(\d+)', output)
-          
+  
           if baseline_cost_match and usage_cost_match and total_cost_match:
-           baseline_cost = baseline_cost_match.group(1)
-           usage_cost = usage_cost_match.group(1)
-           total_cost = total_cost_match.group(1)
-          
-           print(f"Baseline cost: ${baseline_cost}")
-           print(f"Usage cost: ${usage_cost}")
-           print(f"Total cost: ${total_cost}")
-          
-           with open(os.getenv('GITHUB_OUTPUT'), 'a') as output_file:
-               output_file.write(f'baseline_cost={baseline_cost}\n')
-               output_file.write(f'usage_cost={usage_cost}\n')
-               output_file.write(f'total_cost={total_cost}\n')
+            baseline_cost = baseline_cost_match.group(1)
+            usage_cost = usage_cost_match.group(1)
+            total_cost = total_cost_match.group(1)
+            
+            print(f"Baseline cost: ${baseline_cost}")
+            print(f"Usage cost: ${usage_cost}")
+            print(f"Total cost: ${total_cost}")
+            
+            # 设置输出变量
+            with open(os.getenv('GITHUB_OUTPUT'), 'a') as output_file:
+              output_file.write(f'baseline_cost={baseline_cost}\n')
+              output_file.write(f'usage_cost={usage_cost}\n')
+              output_file.write(f'total_cost={total_cost}\n')
           else:
-           print("Can't extract cost info")
+            print("Can't extract cost info")
+          EOF
 
       - name: Output Costs
         run: |
