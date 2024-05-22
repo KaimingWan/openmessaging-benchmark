@@ -250,12 +250,12 @@ jobs:
             python -m pip install --upgrade pip
             pip install regex
 
-      - name: Extract Information from Log
+      - name: Extract Information from Benchmark Worker Log
         if: ${{ inputs.execute_benchmark }}
         env:
           LOG_FILE_PATH: /opt/benchmark/benchmark-worker.log
         run: |
-          python <<EOF
+          python3 <<EOF
               import re
               import json
               
