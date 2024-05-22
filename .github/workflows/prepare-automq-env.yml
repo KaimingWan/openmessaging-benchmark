@@ -70,7 +70,7 @@ jobs:
           cat $TF_FILENAME | grep cn-northwest-1
         env:
           TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
-          TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}/${{ inputs.streaming_provider }}
+          TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}-${{ inputs.streaming_provider }}
           TF_FILENAME: provision-kafka-aws.tf
           TF_VAR_FILENAME: terraform.tfvars
 
