@@ -260,7 +260,7 @@ jobs:
           import json
           
           log_file_path = "/tmp/benchmark-worker.log"
-          output_file_path = "/tmp/extracted_data.json"
+          output_file_path = "/tmp/extracted_data"
           
           # Define regex patterns
           workload_pattern = r'Workloads:\s*\{(.*?)\}'
@@ -307,23 +307,14 @@ jobs:
             json.dump(extracted_data, outfile, indent=4)
           EOF
           
-          cat /tmp/extracted_data.json
-
-
-      - name: Upload Extracted Data
-        if: ${{ inputs.execute_benchmark }}
-        uses: actions/upload-artifact@v3
-        with:
-          name: extracted-data
-          path: /tmp/extracted_data.json
-
+          cat /tmp/extracted_data
 
       - name: Generate Report in Issue
         uses: actions/github-script@v6
         if: ${{ inputs.execute_benchmark }}
         env:
           JSON_FILE_PATH: /tmp
-          EXTRACTED_DATA_PATH: /tmp/extracted_data.json
+          EXTRACTED_DATA_PATH: /tmp/extracted_data
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
