@@ -295,6 +295,7 @@ jobs:
           EOF
 
       - name: Upload Extracted Data
+        if: ${{ inputs.execute_benchmark }}
         uses: actions/upload-artifact@v3
         with:
           name: extracted-data
