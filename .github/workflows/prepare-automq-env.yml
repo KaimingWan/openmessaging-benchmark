@@ -244,19 +244,79 @@ jobs:
           JSON_FILE=$(ls /tmp/*.json | head -n 1)
           cat $JSON_FILE
 
+      - name: Install python dependencies
+        if: ${{ inputs.execute_benchmark }}
+        run: |
+            python -m pip install --upgrade pip
+            pip install regex
+
+      - name: Extract Information from Log
+        if: ${{ inputs.execute_benchmark }}
+        env:
+          LOG_FILE_PATH: /opt/benchmark/benchmark-worker.log
+        run: |
+          python <<EOF
+              import re
+              import json
+              
+              log_file_path = "${{ env.LOG_FILE_PATH }}"
+              output_file_path = "/tmp/extracted_data.json"
+              
+              # Define regex patterns
+              workload_pattern = r'Workloads:\s*\{(.*?)\}'
+              consumer_config_pattern = r'ConsumerConfig - ConsumerConfig values:\s*(.*?)\}'
+              common_config_pattern = r'Initialized Kafka benchmark driver with common config:\s*\{(.*?)\}'
+              throughput_pattern = r'WorkloadGenerator - Pub rate \d+\.\d+ msg/s \/ (\d+\.\d+) MB/s'
+            
+              # Read log file
+              with open(log_file_path, 'r') as file:
+              log_content = file.read()
+            
+              # Extract information
+              workload_match = re.search(workload_pattern, log_content, re.DOTALL)
+              consumer_config_match = re.search(consumer_config_pattern, log_content, re.DOTALL)
+              common_config_match = re.search(common_config_pattern, log_content, re.DOTALL)
+              throughput_matches = re.findall(throughput_pattern, log_content)
+              
+              # Calculate average throughput
+              average_throughput = sum(float(tp) for tp in throughput_matches) / len(throughput_matches)
+              
+              # Prepare data for output
+              extracted_data = {
+                "workload": workload_match.group(1) if workload_match else "Not found",
+                "consumer_config": consumer_config_match.group(1) if consumer_config_match else "Not found",
+                "common_config": common_config_match.group(1) if common_config_match else "Not found",
+                "average_throughput": average_throughput
+              }
+            
+              # Write to output file
+              with open(output_file_path, 'w') as outfile:
+              json.dump(extracted_data, outfile)
+          EOF
+
+      - name: Upload Extracted Data
+        uses: actions/upload-artifact@v3
+        with:
+          name: extracted-data
+          path: /tmp/extracted_data.json
+
+
       - name: Generate Report in Issue
         uses: actions/github-script@v6
         if: ${{ inputs.execute_benchmark }}
         env:
-          JSON_FILE_PATH: /tmp  # Define the path where JSON files are stored
+          JSON_FILE_PATH: /tmp
+          EXTRACTED_DATA_PATH: /tmp/extracted_data.json  # Path to the extracted data JSON file
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
             const path = require('path');
+            const downloadedPath = process.env.GITHUB_WORKSPACE;
             
             const issue_number = 2;  // Specify the issue number
             const directoryPath = process.env.JSON_FILE_PATH;
+            const extractedDataPath = process.env.EXTRACTED_DATA_PATH;
             
             // Read the directory and find the first JSON file
             const files = fs.readdirSync(directoryPath).filter(file => file.endsWith('.json'));
@@ -270,18 +330,27 @@ jobs:
             // Read the content of the JSON file
             const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
             
-            // Extract specific fields
-            const workload = jsonData.workload;
-            const messageSize = jsonData.messageSize;
-            const topics = jsonData.topics;
-            const partitions = jsonData.partitions;
-            const producersPerTopic = jsonData.producersPerTopic;
-            const consumersPerTopic = jsonData.consumersPerTopic;
+            // Read extracted data
+            const extractedData = JSON.parse(fs.readFileSync(extractedDataPath, 'utf8'));
             
-            // Extract latency metrics
-            const latencyAvg = jsonData.aggregatedEndToEndLatencyAvg;
-            const latency95pct = jsonData.aggregatedEndToEndLatency95pct;
-            const latency99pct = jsonData.aggregatedEndToEndLatency99pct;
+            // Extract specific fields from JSON and extracted data
+            const {
+              workload,
+              messageSize,
+              topics,
+              partitions,
+              producersPerTopic,
+              consumersPerTopic,
+              latencyAvg,
+              latency95pct,
+              latency99pct
+            } = jsonData;
+            const {
+              workloadConfig,
+              consumerConfig,
+              commonConfig,
+              averageThroughput
+            } = extractedData;
             
             // Get current date and time
             const now = new Date();
@@ -299,10 +368,20 @@ jobs:
               **Producers per Topic:** ${producersPerTopic}
               **Consumers per Topic:** ${consumersPerTopic}
             
+              **Workload Configuration:**
+              \`\`\`${workloadConfig}\`\`\`
+            
+              **Consumer Configuration:**
+              \`\`\`${consumerConfig}\`\`\`
+            
+              **Common Configuration:**
+              \`\`\`${commonConfig}\`\`\`
+            
+              **Average Throughput:** ${averageThroughput} MB/s
+            
               | Streaming System | E2E LatencyAvg(ms) | E2E P95 Latency(ms) | E2E P99 Latency(ms) | 
               | ---------------- | ------------------ | ------------------- | ------------------- |
               | AutoMQ           | ${latencyAvg}      | ${latency95pct}     | ${latency99pct}     | 
-            
             `;
             
             // Post the report as a comment to the specified issue
@@ -312,5 +391,7 @@ jobs:
               issue_number: issue_number,
               body: markdownReport
             });
-
-
+            
+            // Delete the log file to ensure it's not processed again
+            const logFilePath = path.join(downloadedPath, 'benchmark-worker.log');
+            fs.unlinkSync(logFilePath);
