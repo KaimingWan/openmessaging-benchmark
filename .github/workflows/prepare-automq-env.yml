@@ -306,13 +306,12 @@ jobs:
         if: ${{ inputs.execute_benchmark }}
         env:
           JSON_FILE_PATH: /tmp
-          EXTRACTED_DATA_PATH: /tmp/extracted_data.json  # Path to the extracted data JSON file
+          EXTRACTED_DATA_PATH: /tmp/extracted_data.json
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
             const path = require('path');
-            const downloadedPath = process.env.GITHUB_WORKSPACE;
             
             const issue_number = 2;  // Specify the issue number
             const directoryPath = process.env.JSON_FILE_PATH;
@@ -352,6 +351,11 @@ jobs:
               averageThroughput
             } = extractedData;
             
+            // Costs are directly used from the steps
+            const baselineCost = '${{ steps.extract_costs.outputs.baseline_cost }}';
+            const usageCost = '${{ steps.extract_costs.outputs.usage_cost }}';
+            const totalCost = '${{ steps.extract_costs.outputs.total_cost }}';
+            
             // Get current date and time
             const now = new Date();
             const currentDate = now.toISOString().split('T')[0];
@@ -368,20 +372,18 @@ jobs:
               **Producers per Topic:** ${producersPerTopic}
               **Consumers per Topic:** ${consumersPerTopic}
             
+              **Configurations and Throughput:**
               **Workload Configuration:**
               \`\`\`${workloadConfig}\`\`\`
-            
               **Consumer Configuration:**
               \`\`\`${consumerConfig}\`\`\`
-            
               **Common Configuration:**
               \`\`\`${commonConfig}\`\`\`
-            
               **Average Throughput:** ${averageThroughput} MB/s
             
-              | Streaming System | E2E LatencyAvg(ms) | E2E P95 Latency(ms) | E2E P99 Latency(ms) | 
-              | ---------------- | ------------------ | ------------------- | ------------------- |
-              | AutoMQ           | ${latencyAvg}      | ${latency95pct}     | ${latency99pct}     | 
+              | Streaming System | E2E LatencyAvg(ms) | E2E P95 Latency(ms) | E2E P99 Latency(ms) | Baseline Cost | Usage Cost | Total Cost |
+              | ---------------- | ------------------ | ------------------- | ------------------- | ------------ | ---------- | ---------- |
+              | AutoMQ           | ${latencyAvg}      | ${latency95pct}     | ${latency99pct}     | \$${baselineCost} | \$${usageCost} | \$${totalCost} |
             `;
             
             // Post the report as a comment to the specified issue
@@ -391,7 +393,3 @@ jobs:
               issue_number: issue_number,
               body: markdownReport
             });
-            
-            // Delete the log file to ensure it's not processed again
-            const logFilePath = path.join(downloadedPath, 'benchmark-worker.log');
-            fs.unlinkSync(logFilePath);
