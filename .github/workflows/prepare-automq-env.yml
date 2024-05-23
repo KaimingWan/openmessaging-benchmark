@@ -365,8 +365,6 @@ jobs:
             //process extracted data
             let extractedData = JSON.parse(fs.readFileSync(extractedDataPath, 'utf8'));
             extractedData = extractedData.workload_config.replace(/\\n/g, '\n');
-            console.log('workloadConfig:\n', workloadConfig);
-
 
             // Extract specific fields from benchmark log json and extracted data
             const {
