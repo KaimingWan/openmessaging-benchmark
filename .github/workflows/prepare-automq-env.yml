@@ -360,19 +360,11 @@ jobs:
             
             
             //process extracted data
-            let extractedData;
-            try {
-              const rawContent = fs.readFileSync(extractedDataPath, 'utf8')
-              console.log(rawContent);
-              const cleanedContent = rawContent.replace(/\\\\n/g, '').replace(/\\\\"/g, '"');
-              extractedData = JSON.parse(cleanedContent);
-              console.log(extractedData);
-            } catch (error) {
-              console.error('Failed to parse JSON:', error);
-              return;
-            }
-            
-            
+            const extractedData = JSON.parse(fs.readFileSync(extractedDataPath, 'utf8'));
+            const workloadConfig = extractedData.workload_config.replace(/\\n/g, '\n');
+            console.log('workloadConfig:\n', workloadConfig);
+
+
             // Extract specific fields from benchmark log json and extracted data
             const {
               workload_config,
