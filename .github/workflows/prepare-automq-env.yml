@@ -342,17 +342,7 @@ jobs:
             const filePath = path.join(directoryPath, firstJsonFile);
             
             // Read the content of the JSON file
-            let jsonData;
-            try {
-              const rawContent = fs.readFileSync(filePath, 'utf8');
-              console.log(rawContent);
-              const cleanedContent = rawContent.replace(/\\\\n/g, '').replace(/\\\\"/g, '"');
-              jsonData = JSON.parse(cleanedContent);
-              console.log(jsonData);
-            } catch (error) {
-              console.error('Failed to parse JSON:', error);
-              return;
-            }
+            const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
 
             // Extract specific fields
             const workload = jsonData.workload;
@@ -368,8 +358,20 @@ jobs:
             const latency99pct = jsonData.aggregatedEndToEndLatency99pct;
             const latency999pct = jsonData.aggregatedEndToEndLatency999pct;
             
-            // Read extracted data
-            const extractedData = JSON.parse(fs.readFileSync(extractedDataPath, 'utf8'));
+            
+            //process extracted data
+            let extractedData;
+            try {
+              const rawContent = fs.readFileSync(extractedDataPath, 'utf8')
+              console.log(rawContent);
+              const cleanedContent = rawContent.replace(/\\\\n/g, '').replace(/\\\\"/g, '"');
+              extractedData = JSON.parse(cleanedContent);
+              console.log(jsonData);
+            } catch (error) {
+              console.error('Failed to parse JSON:', error);
+              return;
+            }
+            
             
             // Extract specific fields from benchmark log json and extracted data
             const {
