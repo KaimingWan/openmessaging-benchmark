@@ -366,7 +366,7 @@ jobs:
               console.log(rawContent);
               const cleanedContent = rawContent.replace(/\\\\n/g, '').replace(/\\\\"/g, '"');
               extractedData = JSON.parse(cleanedContent);
-              console.log(jsonData);
+              console.log(extractedData);
             } catch (error) {
               console.error('Failed to parse JSON:', error);
               return;
