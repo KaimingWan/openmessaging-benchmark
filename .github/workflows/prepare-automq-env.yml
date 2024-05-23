@@ -395,7 +395,7 @@ jobs:
               **Configurations and Throughput:**
               **Workload Configuration:**
               \`\`\`json
-              ${JSON.stringify(JSON.parse(workload_config || '{}'), null, 2)}
+              ${JSON.stringify(JSON.parse(workload_config.replace(/\\n/g, '').replace(/\\"/g, '"') || '{}'), null, 2)}
               \`\`\`
               **Producer Configuration:**
               \`\`\`json
