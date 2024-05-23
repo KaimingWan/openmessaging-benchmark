@@ -363,7 +363,7 @@ jobs:
             
             
             //process extracted data
-            const extractedData = JSON.parse(fs.readFileSync(extractedDataPath, 'utf8'));
+            let extractedData = JSON.parse(fs.readFileSync(extractedDataPath, 'utf8'));
             extractedData = extractedData.workload_config.replace(/\\n/g, '\n');
             console.log('workloadConfig:\n', workloadConfig);
 
