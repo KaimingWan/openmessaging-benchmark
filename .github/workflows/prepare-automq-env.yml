@@ -263,8 +263,8 @@ jobs:
           import re
           import json
           
-          log_file_path = "benchmark-worker.log"
-          output_file_path = "extracted_data.json"
+          log_file_path = "/tmp/benchmark-worker.log"
+          output_file_path = "/tmp/extracted_data"
           
           # Define regex patterns
           workload_pattern = r'Workloads:\s*\{(.*?)\}'
