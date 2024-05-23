@@ -342,8 +342,16 @@ jobs:
             const filePath = path.join(directoryPath, firstJsonFile);
             
             // Read the content of the JSON file
-            const jsonData = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-            
+            let jsonData;
+            try {
+              const rawContent = fs.readFileSync(filePath, 'utf8');
+              const cleanedContent = rawContent.replace(/\\n/g, '').replace(/\\"/g, '"').replace(/^"|"$/g, '');
+              jsonData = JSON.parse(cleanedContent);
+            } catch (error) {
+              console.error('Failed to parse JSON:', error);
+              return;
+            }
+
             // Extract specific fields
             const workload = jsonData.workload;
             const messageSize = jsonData.messageSize;
@@ -395,23 +403,23 @@ jobs:
               **Configurations and Throughput:**
               **Workload Configuration:**
               \`\`\`json
-              ${JSON.stringify(JSON.parse(workload_config.replace(/\\n/g, '').replace(/\\"/g, '"') || '{}'), null, 2)}
+              ${JSON.stringify(workload_config, null, 2)}
               \`\`\`
               **Producer Configuration:**
               \`\`\`json
-              ${JSON.stringify(JSON.parse(producer_config || '{}'), null, 2)}
+              ${JSON.stringify(producer_config, null, 2)}
               \`\`\`
               **Consumer Configuration:**
               \`\`\`json
-              ${JSON.stringify(JSON.parse(consumer_config || '{}'), null, 2)}
+              ${JSON.stringify(consumer_config, null, 2)}
               \`\`\`
               **Topic Configuration:**
               \`\`\`json
-              ${JSON.stringify(JSON.parse(topic_config || '{}'), null, 2)}
+              ${JSON.stringify(topic_config, null, 2)}
               \`\`\`
               **Replication Factor:**
               \`\`\`json
-              ${JSON.stringify(replication_factor || {}, null, 2)}
+              ${JSON.stringify(replication_factor, null, 2)}
               \`\`\`
               **Average Throughput:** ${average_throughput} MB/s
               
