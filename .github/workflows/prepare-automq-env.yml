@@ -383,41 +383,41 @@ jobs:
             
             // Generate a Markdown formatted report
             const markdownReport = `
-                ## AutoMQ Benchmark VS. Result 🚀
-                **Report Generated:** ${currentDate} ${currentTime}
-                **Workload:** ${workload}
-                **Message Size:** ${messageSize} bytes
-                **Topics:** ${topics}
-                **Partitions:** ${partitions}
-                **Producers per Topic:** ${producersPerTopic}
-                **Consumers per Topic:** ${consumersPerTopic}
-          
-                **Configurations and Throughput:**
-                **Workload Configuration:**
-                \`\`\`json
-                ${JSON.stringify(workload_config, null, 2)}
-                \`\`\`
-                **Producer Configuration:**
-                \`\`\`json
-                ${JSON.stringify(producer_config, null, 2)}
-                \`\`\`
-                **Consumer Configuration:**
-                \`\`\`json
-                ${JSON.stringify(consumer_config, null, 2)}
-                \`\`\`
-                **Topic Configuration:**
-                \`\`\`json
-                ${JSON.stringify(topic_config, null, 2)}
-                \`\`\`
-                **Replication Factor:**
-                \`\`\`json
-                ${JSON.stringify(replication_factor, null, 2)}
-                \`\`\`
-                **Average Throughput:** ${average_throughput} MB/s
-          
-                | Streaming System | E2E LatencyAvg(ms) | E2E P95 Latency(ms) | E2E P99 Latency(ms) | Baseline Cost | Usage Cost | Total Cost |
-                | ---------------- | ------------------ | ------------------- | ------------------- | ------------- | ---------- | ---------- |
-                | AutoMQ           | ${latencyAvg}      | ${latency95pct}     | ${latency99pct}     | \$${baselineCost} | \$${usageCost} | \$${totalCost} |
+              ## AutoMQ Benchmark VS. Result 🚀
+              **Report Generated:** ${currentDate} ${currentTime}
+              **Workload:** ${workload}
+              **Message Size:** ${messageSize} bytes
+              **Topics:** ${topics}
+              **Partitions:** ${partitions}
+              **Producers per Topic:** ${producersPerTopic}
+              **Consumers per Topic:** ${consumersPerTopic}
+              
+              **Configurations and Throughput:**
+              **Workload Configuration:**
+              \`\`\`json
+              ${JSON.stringify(workload_config, null, 2)}
+              \`\`\`
+              **Producer Configuration:**
+              \`\`\`json
+              ${JSON.stringify(producer_config, null, 2)}
+              \`\`\`
+              **Consumer Configuration:**
+              \`\`\`json
+              ${JSON.stringify(consumer_config, null, 2)}
+              \`\`\`
+              **Topic Configuration:**
+              \`\`\`json
+              ${JSON.stringify(topic_config, null, 2)}
+              \`\`\`
+              **Replication Factor:**
+              \`\`\`json
+              ${JSON.stringify(replication_factor, null, 2)}
+              \`\`\`
+              **Average Throughput:** ${average_throughput} MB/s
+              
+              | Streaming System | E2E LatencyAvg(ms) | E2E P95 Latency(ms) | E2E P99 Latency(ms) | Baseline Cost | Usage Cost | Total Cost |
+              | ---------------- | ------------------ | ------------------- | ------------------- | ------------- | ---------- | ---------- |
+              | AutoMQ           | ${latencyAvg}      | ${latency95pct}     | ${latency99pct}     | $${baselineCost} | $${usageCost} | $${totalCost} |
             `;
       
             // Post the report as a comment to the specified issue
