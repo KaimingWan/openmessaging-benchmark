@@ -345,8 +345,10 @@ jobs:
             let jsonData;
             try {
               const rawContent = fs.readFileSync(filePath, 'utf8');
+              console.log(rawContent);
               const cleanedContent = rawContent.replace(/\\\\n/g, '').replace(/\\\\"/g, '"');
               jsonData = JSON.parse(cleanedContent);
+              console.log(jsonData);
             } catch (error) {
               console.error('Failed to parse JSON:', error);
               return;
