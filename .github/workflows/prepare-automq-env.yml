@@ -268,7 +268,7 @@ jobs:
           
           # Define regex patterns
           workload_pattern = r'Workloads:\s*\{(.*?)\}'
-          kafka_benchmark_driver_pattern = r'\[.*?\] INFO Benchmark - Initialized Kafka benchmark driver with common config: .*? producer config:\s*\{(.*?)\},  consumer config:\s*\{(.*?)\}, topic config:\s*\{(.*?)\}, replicationFactor:\s*(\d+)'
+          kafka_benchmark_driver_pattern = r'\[.*?\] INFO Benchmark - Initialized Kafka benchmark driver with common config: \{(.*?)\}, producer config: \{(.*?)\}, consumer config: \{(.*?)\}, topic config: \{(.*?)\}, replicationFactor: (\d+)'
 
           # Read log file
           with open(log_file_path, 'r') as file:
