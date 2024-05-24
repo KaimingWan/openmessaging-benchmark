@@ -105,7 +105,7 @@ jobs:
           if [ "${{ inputs.streaming_provider }}" == "automq" ]; then
                 echo "[INFO] Provider is AutoMQ"
                 cd  driver-automq/deploy/terraform-aws
-                infracost breakdown --path . -usage-file infracost/automq-medium-s3-500m-6t.yml >> /tmp/aws-cost.txt
+                infracost breakdown --path . --usage-file infracost/automq-medium-s3-500m-6t.yml >> /tmp/aws-cost.txt
           fi
           
           COST_DETAIL_FILE=/tmp/aws-cost.txt
