@@ -337,7 +337,7 @@ jobs:
             const extractedDataPath = process.env.EXTRACTED_DATA_PATH;
             
             // read cost report
-            const costReportPath=fs.readFileSync(/tmp/aws-cost.txt, 'utf8')
+            const costReportPath = fs.readFileSync('/tmp/aws-cost.txt', 'utf8');
             
             // Read the directory and find the first JSON file
             const files = fs.readdirSync(directoryPath).filter(file => file.endsWith('.json'));
