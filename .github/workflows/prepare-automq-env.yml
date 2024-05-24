@@ -105,8 +105,9 @@ jobs:
           if [ "${{ inputs.streaming_provider }}" == "automq" ]; then
                 echo "[INFO] Provider is AutoMQ"
                 cd  driver-automq/deploy/terraform-aws
+                infracost breakdown --path . -usage-file infracost/automq-medium-s3-500m-6t.yml >> /tmp/aws-cost.txt
           fi
-          infracost breakdown --path . >> /tmp/aws-cost.txt
+          
           COST_DETAIL_FILE=/tmp/aws-cost.txt
           cat $COST_DETAIL_FILE
 
@@ -335,6 +336,9 @@ jobs:
             const directoryPath = process.env.JSON_FILE_PATH;
             const extractedDataPath = process.env.EXTRACTED_DATA_PATH;
             
+            // read cost report
+            const costReportPath=fs.readFileSync(/tmp/aws-cost.txt, 'utf8')
+            
             // Read the directory and find the first JSON file
             const files = fs.readdirSync(directoryPath).filter(file => file.endsWith('.json'));
             if (files.length === 0) {
@@ -420,6 +424,11 @@ jobs:
               ${JSON.stringify(replication_factor, null, 2)}
               \`\`\`
               **Average Throughput:** ${average_throughput} MB/s
+            
+              > Cost Estimate Rule: AutoMQ 800MB of storage corresponds to about 25 PUTs and 10 GETs.We have estimated that each GB corresponds to 31.25 PUTs and 12.5 GETs.Assuming a peak throughput of 0.5 GB/s and an average throughput of 0.01 GB/s, with data retention for 7 days, the data volume for 30 days(calculated with 7 days) is:7*24*3600*0.01GB/s = 6048GB = 5.9T ≈ 6T
+              
+              **Cost Report:**
+              ${costReportPath}
               
               | Streaming System | E2E LatencyAvg(ms) | E2E P95 Latency(ms) | E2E P99 Latency(ms) | Baseline Cost | Usage Cost | Total Cost |
               | ---------------- | ------------------ | ------------------- | ------------------- | ------------- | ---------- | ---------- |
