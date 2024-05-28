@@ -475,8 +475,7 @@ jobs:
               ${consumerConfigPairs}
               ### Topic Configuration
               ${topicConfigPairs}
-              ### Replication Configuration
-              ${replicationFactorPairs}
+              replicationFactor: ${replicationFactorPairs}
               ### Replication Configuration
               Average Throughput: ${average_throughput} MB/s
             
