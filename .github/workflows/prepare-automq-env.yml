@@ -462,15 +462,15 @@ jobs:
               .join('\n');
             };
   
-            const workloadConfigPairs = extractWorkloadConfig(exampleData.workload_config);
+            const workloadConfigPairs = extractWorkloadConfig(workload_config);
             const configToKeyValuePairs = (config) => {
               return config.split(', ').map(pair => pair.replace('=', ': ')).join('\n');
             };
             
-            const producerConfigPairs = configToKeyValuePairs(exampleData.producer_config);
-            const consumerConfigPairs = configToKeyValuePairs(exampleData.consumer_config);
-            const topicConfigPairs = configToKeyValuePairs(exampleData.topic_config);
-            const replicationFactorPairs = configToKeyValuePairs(exampleData.replication_factor);
+            const producerConfigPairs = configToKeyValuePairs(producer_config);
+            const consumerConfigPairs = configToKeyValuePairs(consumer_config);
+            const topicConfigPairs = configToKeyValuePairs(topic_config);
+            const replicationFactorPairs = configToKeyValuePairs(replication_factor);
             
             // Costs are directly used from the steps
             const baselineCost = process.env.BASELINE_COST;
