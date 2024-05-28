@@ -96,6 +96,7 @@
         fstype: ext4
         dev: '{{ item }}'
       with_items:
+        ## aws default raw disk name is /dev/nvme1n1
         - '/dev/nvme1n1'
     - name: Mount disks
       mount:

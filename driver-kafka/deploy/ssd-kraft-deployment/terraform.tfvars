@@ -19,6 +19,6 @@ num_instances = {
 monitoring = true
 
 ebs_volume_type = "gp3"
-ebs_volume_size = 500
+ebs_volume_size = 2048
 ebs_iops = 3000
 ebs_throughput = 125
