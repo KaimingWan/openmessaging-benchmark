@@ -7,10 +7,6 @@ on:
         default: aws-cn
         required: true
         type: string
-      streaming_provider:
-        default: automq
-        required: true
-        type: string
       region:
         default: cn-northwest-1
         required: true
@@ -52,9 +48,9 @@ jobs:
       - name: Apply Variables and Secrets for Shared Files
         run: |
           echo "current path is: $(pwd)"
-          sed -i "s/\${AUTOMQ_ENVID}/${{ inputs.streaming_provider }}/g" "driver-nats/deploy/provision-nats-aws.tf"
-          sed -i "s/\${AUTOMQ_ENVID}/${{ inputs.streaming_provider }}/g" "driver-pravega/deploy/provision-pravega-aws.tf"
-          sed -i "s/\${AUTOMQ_ENVID}/${{ inputs.streaming_provider }}/g" "driver-automq/deploy/terraform-aws/provision-kafka-aws.tf"
+          sed -i "s/\${AUTOMQ_ENVID}/automq/g" "driver-nats/deploy/provision-nats-aws.tf"
+          sed -i "s/\${AUTOMQ_ENVID}/automq/g" "driver-pravega/deploy/provision-pravega-aws.tf"
+          sed -i "s/\${AUTOMQ_ENVID}/automq/g" "driver-automq/deploy/terraform-aws/provision-kafka-aws.tf"
 
       - name: Apply Variables and Secrets for Streaming Provider
         working-directory: driver-automq/deploy/terraform-aws
@@ -69,7 +65,7 @@ jobs:
           sed -i "s/\${AUTOMQ_SECRET_KEY}/${{ secrets.AUTOMQ_SECRET_KEY }}/g" "$TF_VAR_FILENAME"
         env:
           TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
-          TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}-${{ inputs.streaming_provider }}
+          TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}-automq
           TF_FILENAME: provision-kafka-aws.tf
           TF_VAR_FILENAME: terraform-aws-cn.tfvars
 
@@ -102,11 +98,9 @@ jobs:
 
       - name: AWS Cost Estimate
         run: |
-          if [ "${{ inputs.streaming_provider }}" == "automq" ]; then
-                echo "[INFO] Provider is AutoMQ"
-                cd  driver-automq/deploy/terraform-aws
-                infracost breakdown --path . --usage-file infracost/automq-medium-s3-500m-6t.yml >> /tmp/aws-cost.txt
-          fi
+          echo "[INFO] Provider is AutoMQ"
+          cd  driver-automq/deploy/terraform-aws
+          infracost breakdown --path . --usage-file infracost/automq-medium-s3-500m-6t.yml >> /tmp/aws-cost.txt
           
           COST_DETAIL_FILE=/tmp/aws-cost.txt
           cat $COST_DETAIL_FILE
