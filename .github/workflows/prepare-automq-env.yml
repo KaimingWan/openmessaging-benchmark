@@ -365,8 +365,6 @@ jobs:
           print(json.dumps(extracted_data, indent=4))
           EOF
           
-          cat /tmp/extracted_data
-
 
       - name: Generate Report in Issue
         uses: actions/github-script@v6
@@ -460,6 +458,12 @@ jobs:
               return pairs.join('\n');
             };
             
+            const formatWorkloadConfig = (config) => {
+              return Object.entries(config)
+              .map(([key, value]) => `${key}: ${value}`)
+              .join('\n');
+            };
+  
             const workloadConfigPairs = extractWorkloadConfig(exampleData.workload_config);
             const configToKeyValuePairs = (config) => {
               return config.split(', ').map(pair => pair.replace('=', ': ')).join('\n');
