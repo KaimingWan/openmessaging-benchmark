@@ -428,40 +428,20 @@ jobs:
               average_throughput
             } = extractedData;
             
-            // Function to manually extract key-value pairs from workload configuration string
             const extractWorkloadConfig = (config) => {
-              const getValue = (key) => {
-                const startIndex = config.indexOf(`"${key}"`) + key.length + 4;
-                let endIndex = config.indexOf(',', startIndex);
-                if (endIndex === -1) {
-                  endIndex = config.indexOf('\n', startIndex);
-                }
-                let value = config.substring(startIndex, endIndex).trim();
-                if (value.endsWith(',')) {
-                  value = value.slice(0, -1);
-                }
-                return value.replace(/"/g, '');
-              };
-          
-              const keys = [
+            const keys = [
               'name', 'topics', 'partitionsPerTopic', 'partitionsPerTopicList', 'randomTopicNames',
               'keyDistributor', 'messageSize', 'useRandomizedPayloads', 'randomBytesRatio',
               'randomizedPayloadPoolSize', 'payloadFile', 'subscriptionsPerTopic', 'producersPerTopic',
               'producersPerTopicList', 'consumerPerSubscription', 'producerRate', 'producerRateList',
               'consumerBacklogSizeGB', 'backlogDrainRatio', 'testDurationMinutes', 'warmupDurationMinutes',
               'logIntervalMillis'
-              ];
-
-              const pairs = keys.map(key => `${key}: ${getValue(key)}`);
+            ];
+          
+            const pairs = keys.map(key => `${key}: ${config[key]}`);
               return pairs.join('\n');
             };
             
-            const formatWorkloadConfig = (config) => {
-              return Object.entries(config)
-              .map(([key, value]) => `${key}: ${value}`)
-              .join('\n');
-            };
-  
             const workloadConfigPairs = extractWorkloadConfig(workload_config);
             const configToKeyValuePairs = (config) => {
               return config.split(', ').map(pair => pair.replace('=', ': ')).join('\n');
