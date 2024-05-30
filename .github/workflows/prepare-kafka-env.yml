@@ -1,4 +1,4 @@
-name: Prepare AutoMQ Cluster
+name: Prepare Kafka Cluster
 
 on:
   workflow_dispatch:
