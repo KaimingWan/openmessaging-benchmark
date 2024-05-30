@@ -167,8 +167,11 @@ jobs:
 
       - name: Terraform Plan
         working-directory: driver-kafka/deploy/ssd-kraft-deployment
-        run: terraform plan -var-file terraform.tfvars
-
+        run: |
+          export AWS_ACCESS_KEY_ID=${{ secrets.AUTOMQ_ACCESS_KEY }}
+          export AWS_SECRET_ACCESS_KEY=${{ secrets.AUTOMQ_SECRET_KEY }}
+          terraform plan -var-file terraform.tfvars
+          
 
       - name: Apply terraform
         working-directory: driver-kafka/deploy/ssd-kraft-deployment
