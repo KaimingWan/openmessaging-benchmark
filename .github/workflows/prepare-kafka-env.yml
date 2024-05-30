@@ -113,7 +113,7 @@ jobs:
           import os
           import sys
         
-          with open('aws-cost.txt', 'r') as file:
+          with open('/tmp/aws-cost.txt', 'r') as file:
             output = file.read()
             
           print("File content:")
