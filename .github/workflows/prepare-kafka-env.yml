@@ -67,7 +67,7 @@ jobs:
           TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
           TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}-kafka
           TF_FILENAME: provision-kafka-aws.tf
-          TF_VAR_FILENAME: terraform-aws-cn.tfvars
+          TF_VAR_FILENAME: terraform.tfvars
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -160,18 +160,18 @@ jobs:
       - name: Uninstall Cloud Infra
         working-directory: driver-kafka/deploy/ssd-kraft-deployment
         if: ${{ inputs.uninstall }}
-        run: terraform destroy --auto-approve -var-file terraform-aws-cn.tfvars
+        run: terraform destroy --auto-approve -var-file terraform.tfvars
 
 
       - name: Terraform Plan
         working-directory: driver-kafka/deploy/ssd-kraft-deployment
-        run: terraform plan -var-file terraform-aws-cn.tfvars
+        run: terraform plan -var-file terraform.tfvars
 
 
       - name: Apply terraform
         working-directory: driver-kafka/deploy/ssd-kraft-deployment
         if: ${{ !inputs.uninstall }}
-        run: terraform apply --auto-approve -var-file terraform-aws-cn.tfvars
+        run: terraform apply --auto-approve -var-file terraform.tfvars
 
       - name: Install ansible
         if: ${{ !inputs.uninstall && !inputs.execute_benchmark }}
