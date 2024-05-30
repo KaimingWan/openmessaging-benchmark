@@ -200,8 +200,8 @@ jobs:
         if: ${{ inputs.execute_benchmark }}
         run: |
           # Set up base SSH and SCP commands with common options
-          SSH_BASE_CMD="ssh -o StrictHostKeyChecking=no -i ~/.ssh/automq_aws"
-          SCP_BASE_CMD="scp -o StrictHostKeyChecking=no -i ~/.ssh/automq_aws"
+          SSH_BASE_CMD="ssh -o StrictHostKeyChecking=no -i ~/.ssh/kafka_aws"
+          SCP_BASE_CMD="scp -o StrictHostKeyChecking=no -i ~/.ssh/kafka_aws"
           SSH_HOST="$(terraform output --raw user)@$(terraform output --raw client_ssh_host)"
           BENCHMARK_DIR="/opt/benchmark"
           
