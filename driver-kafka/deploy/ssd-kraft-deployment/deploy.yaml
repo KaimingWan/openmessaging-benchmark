@@ -19,7 +19,7 @@
   tasks:
     - name: Set common facts
       set_fact:
-        controllerServers: "{{ groups['controller'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') | join(',') }}"
+        controllerServers: "{{ groups['server'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') | join(',') }}"
         brokerServers: "{{ groups['broker'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9092') | join(',') }}"
         privateIp: "{{ hostvars[inventory_hostname]['ansible_default_ipv4']['address'] }}"
         base_data_path: "/mnt/data-1"
@@ -85,8 +85,8 @@
 - name: Format and mount disks for Kafka hosts
   tags: [prepare]
   any_errors_fatal: true
-  hosts: [controller, broker]
-  connection: ssh
+  hosts: [server, broker]
+  connection: ssh·
   become: true
   tasks:
     - command: >
@@ -110,7 +110,7 @@
 
 - name: Kafka general setup
   tags: [prepare]
-  hosts: [controller, broker]
+  hosts: [server, broker]
   connection: ssh
   become: true
   tasks:
@@ -121,7 +121,7 @@
       block:
         - set_fact:
             quorumServers: "{{ quorumServers | default('') + (itemIndex + 1) | string + '@' + item + ',' }}"
-          loop: "{{ groups['controller'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') }}"
+          loop: "{{ groups['server'] | map('extract', hostvars, ['private_ip']) | map('regex_replace', '^(.*)$', '\\1:9093') }}"
           loop_control:
             index_var: itemIndex
         - set_fact:
@@ -136,32 +136,32 @@
         dest: "{{ base_code_path }}/kafka"
         extra_opts: ["--strip-components=1"]
 
-# setting controllers.
-- name: Setup Kafka controllers
+# setting servers.
+- name: Setup Kafka servers
   tags: [run]
-  hosts: controller
+  hosts: server
   connection: ssh
   become: true
   tasks:
     - name: Set nodeId
       set_fact:
-        nodeId: "{{ groups['controller'].index(inventory_hostname) + 1 }}"
-    - name: copy controller properties
+        nodeId: "{{ groups['server'].index(inventory_hostname) + 1 }}"
+    - name: copy server properties
       template:
-        src: "templates/controller.properties"
-        dest: "{{ base_code_path }}/kafka/config/kraft/controller.properties"
+        src: "templates/server.properties"
+        dest: "{{ base_code_path }}/kafka/config/kraft/server.properties"
     - template:
-        src: "templates/controller.service"
-        dest: "/etc/systemd/system/controller.service"
+        src: "templates/server.service"
+        dest: "/etc/systemd/system/server.service"
     - name: Format Log Directories
-      shell: bin/kafka-storage.sh format -t {{ KAFKA_CLUSTER_ID }} -c config/kraft/controller.properties --ignore-formatted
+      shell: bin/kafka-storage.sh format -t {{ KAFKA_CLUSTER_ID }} -c config/kraft/server.properties --ignore-formatted
       args:
         chdir: "{{ base_code_path }}/kafka"
     - systemd:
         state: restarted
         daemon_reload: yes
-        name: "controller"
-      tags: [restart-controller]
+        name: "server"
+      tags: [restart-server]
 
 
 - name: Setup Kafka brokers
@@ -172,7 +172,7 @@
   tasks:
     - name: Set nodeId
       set_fact:
-        nodeId: "{{  (groups['controller'] | length) + groups['broker'].index(inventory_hostname) + 1 }}"
+        nodeId: "{{  (groups['server'] | length) + groups['broker'].index(inventory_hostname) + 1 }}"
     - name: copy broker properties
       template:
         src: "templates/broker.properties"
@@ -282,8 +282,8 @@
   become: false
   tasks:
     - debug:
-        msg: "Kafka controller servers {{ item }}"
-      with_items: "{{ groups['controller'] }}"
+        msg: "Kafka servers {{ item }}"
+      with_items: "{{ groups['server'] }}"
     - debug:
         msg: "Kafka brokers {{ item }}"
       with_items: "{{ groups['broker'] }}"

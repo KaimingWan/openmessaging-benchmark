@@ -46,13 +46,15 @@ variable "region" {}
 
 variable "ami" {}
 
-variable "az" {}
+variable "az" {
+  type = list(string)
+}
 
-variable "instance_types" {
+variable "instance_type" {
   type = map(string)
 }
 
-variable "num_instances" {
+variable "instance_cnt" {
   type = map(string)
 }
 
@@ -83,13 +85,18 @@ resource "aws_vpc" "benchmark_vpc" {
   cidr_block = "10.0.0.0/16"
 
   tags = {
-    Name = "Kafka_Benchmark_VPC_${AUTOMQ_ENVID}"
+    Name      = "Openmessaging_Benchmark_VPC_automq_envid"
+    Benchmark = "Openmessaging_automq_envid"
   }
 }
 
 # Create an internet gateway to give our subnet access to the outside world
 resource "aws_internet_gateway" "kafka" {
   vpc_id = "${aws_vpc.benchmark_vpc.id}"
+
+  tags = {
+    Benchmark = "Openmessaging_automq_envid"
+  }
 }
 
 # Grant the VPC internet access on its main route table
@@ -101,14 +108,20 @@ resource "aws_route" "internet_access" {
 
 # Create a subnet to launch our instances into
 resource "aws_subnet" "benchmark_subnet" {
-  vpc_id                  = "${aws_vpc.benchmark_vpc.id}"
-  cidr_block              = "10.0.0.0/24"
+  count                   = length(var.az)
+  vpc_id                  = aws_vpc.benchmark_vpc.id
+  cidr_block              = cidrsubnet(aws_vpc.benchmark_vpc.cidr_block, 8, count.index)
   map_public_ip_on_launch = true
-  availability_zone       = "${var.az}"
+  availability_zone       = element(var.az, count.index)
+
+
+  tags = {
+    Benchmark = "Openmessaging_Benchmark_automq_envid"
+  }
 }
 
 resource "aws_security_group" "benchmark_security_group" {
-  name   = "terraform-kafka-${AUTOMQ_ENVID}"
+  name   = "terraform-kafka__automq_envid"
   vpc_id = "${aws_vpc.benchmark_vpc.id}"
 
   # SSH access from anywhere
@@ -136,28 +149,34 @@ resource "aws_security_group" "benchmark_security_group" {
   }
 
   tags = {
-    Name = "Benchmark-Security-Group-${AUTOMQ_ENVID}"
+    Name      = "Openmessaging_Benchmark_SecurityGroup_automq_envid"
+    Benchmark = "Openmessaging_automq_envid"
   }
 }
 
 resource "aws_key_pair" "auth" {
-  key_name   = "${var.key_name}-${AUTOMQ_ENVID}"
-  public_key = "${file(var.public_key_path)}"
+  key_name   = "${var.key_name}-kafka"
+  public_key = file(var.public_key_path)
+
+  tags = {
+    Benchmark = "Openmessaging_automq_envid"
+  }
 }
 
-resource "aws_instance" "controller" {
-  ami                    = "${var.ami}"
-  instance_type          = "${var.instance_types["controller"]}"
-  key_name               = "${aws_key_pair.auth.id}"
-  subnet_id              = "${aws_subnet.benchmark_subnet.id}"
-  vpc_security_group_ids = ["${aws_security_group.benchmark_security_group.id}"]
-  count                  = "${var.num_instances["controller"]}"
+resource "aws_instance" "server" {
+  ami                    = var.ami
+  instance_type          = var.instance_type["server"]
+  key_name               = aws_key_pair.auth.id
+  subnet_id              = element(aws_subnet.benchmark_subnet.*.id, count.index % length(var.az))
+  vpc_security_group_ids = [aws_security_group.benchmark_security_group.id]
+  count                  = var.instance_cnt["server"]
 
   root_block_device {
     volume_type = "gp3"
     volume_size = 64
     tags = {
-      Name = "ctrl_${count.index}"
+      Name            = "Openmessaging_Benchmark_EBS_root_server_${count.index}_automq_envid"
+      Benchmark       = "Openmessaging_automq_envid"
     }
   }
 
@@ -166,30 +185,31 @@ resource "aws_instance" "controller" {
     volume_type = "gp3"
     volume_size = 32
     tags = {
-      Name = "ctrl_${count.index}_data"
+      Name                  = "Openmessaging_Benchmark_EBS_data_server_${count.index}_automq_envid"
     }
   }
 
   monitoring = var.monitoring
   tags = {
-    Name      = "kafka_controller_${count.index}"
-    Benchmark = "Kafka"
+    Name            = "Openmessaging_Benchmark_EC2_server_${count.index}_automq_envid"
+    Benchmark       = "Openmessaging_automq_envid"
   }
 }
 
 resource "aws_instance" "broker" {
-  ami                    = "${var.ami}"
-  instance_type          = "${var.instance_types["broker"]}"
-  key_name               = "${aws_key_pair.auth.id}"
-  subnet_id              = "${aws_subnet.benchmark_subnet.id}"
-  vpc_security_group_ids = ["${aws_security_group.benchmark_security_group.id}"]
-  count                  = lookup(var.num_instances, "broker", 0) # (var.num_instances["broker"]")
+  ami                    = var.ami
+  instance_type          = var.instance_type["broker"]
+  key_name               = aws_key_pair.auth.id
+  subnet_id              = element(aws_subnet.benchmark_subnet.*.id, count.index % length(var.az))
+  vpc_security_group_ids = [aws_security_group.benchmark_security_group.id]
+  count                  = var.instance_cnt["broker"]
 
   root_block_device {
     volume_type = "gp3"
     volume_size = 64
     tags = {
-      Name = "bkr_${count.index}"
+      Name            = "Openmessaging_Benchmark_EBS_root_broker_${count.index}_automq_envid"
+      Benchmark       = "Openmessaging_automq_envid"
     }
   }
 
@@ -200,30 +220,32 @@ resource "aws_instance" "broker" {
     iops        = var.ebs_iops
     throughput  = var.ebs_throughput
     tags = {
-      Name = "bkr_${count.index}_data"
+      Name                  = "Openmessaging_Benchmark_EBS_data_broker_${count.index}_automq_envid"
+      Benchmark             = "Openmessaging_automq_envid"
     }
   }
 
   monitoring = var.monitoring
   tags = {
-    Name      = "kafka_broker_${count.index}"
-    Benchmark = "Kafka"
+    Name            = "Openmessaging_Benchmark_EC2_broker_${count.index}_automq_envid"
+    Benchmark       = "Openmessaging_automq_envid"
   }
 }
 
 resource "aws_instance" "client" {
-  ami                    = "${var.ami}"
-  instance_type          = "${var.instance_types["client"]}"
-  key_name               = "${aws_key_pair.auth.id}"
-  subnet_id              = "${aws_subnet.benchmark_subnet.id}"
-  vpc_security_group_ids = ["${aws_security_group.benchmark_security_group.id}"]
-  count                  = "${var.num_instances["client"]}"
+  ami                    = var.ami
+  instance_type          = var.instance_type["client"]
+  key_name               = aws_key_pair.auth.id
+  subnet_id              = element(aws_subnet.benchmark_subnet.*.id, count.index % length(var.az))
+  vpc_security_group_ids = [aws_security_group.benchmark_security_group.id]
+  count                  = var.instance_cnt["client"]
 
   root_block_device {
     volume_type = "gp3"
     volume_size = 64
     tags = {
-      Name = "client_${count.index}"
+      Name      = "Kafla_on_S3_Benchmark_EBS_root_client_${count.index}_automq_envid"
+      Benchmark = "Openmessaging_automq_envid_client"
     }
   }
 
@@ -234,14 +256,30 @@ resource "aws_instance" "client" {
   }
 }
 
-output "controller_ssh_host" {
-  value = "${aws_instance.controller[0].public_ip}"
+output "server_ssh_host" {
+  value = var.instance_cnt["server"] > 0 ? aws_instance.server[0].public_ip : null
 }
 
 output "broker_ssh_host" {
-  value = var.num_instances["broker"] > 0 ? aws_instance.broker[0].public_ip: null
+  value = var.instance_cnt["broker"] > 0 ? aws_instance.broker[0].public_ip : null
 }
 
 output "client_ssh_host" {
-  value = var.num_instances["client"] > 0 ? aws_instance.client[0].public_ip: null
+  value = var.instance_cnt["client"] > 0 ? aws_instance.client[0].public_ip : null
+}
+
+output "client_ids" {
+  value = [for i in aws_instance.client : i.id]
+}
+
+output "env_id" {
+  value = random_id.hash.hex
+}
+
+output "vpc_id" {
+  value = aws_vpc.benchmark_vpc.id
+}
+
+output "ssh_key_name" {
+  value = aws_key_pair.auth.key_name
 }
