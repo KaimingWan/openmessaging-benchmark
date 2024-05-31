@@ -1,0 +1,189 @@
+name: "Prepare Env Shared Steps"
+runs:
+  using: "composite"
+steps:
+  ## reference: https://www.jameskerr.blog/posts/sharing-steps-in-github-action-workflows/
+  - name: Cache local Maven repository
+    uses: actions/cache@v2
+    with:
+      path: ~/.m2/repository
+      key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+      restore-keys: |
+        ${{ runner.os }}-maven-
+
+  - name: Fetch Latest Data
+    shell: bash
+    run: |
+      git pull origin main
+
+  - name: Build Benchmark Code
+    shell: bash
+    run: |
+      mvn clean package -Dlicense.skip=true -Dcheckstyle.skip -DskipTests -Dspotless.check.skip
+
+  - name: Apply Variables and Secrets for Shared Files
+    shell: bash
+    run: |
+      echo "current path is: $(pwd)"
+      sed -i "s/\${AUTOMQ_ENVID}/$STREAMING_PROVIDER/g" "driver-nats/deploy/provision-nats-aws.tf"
+      sed -i "s/\${AUTOMQ_ENVID}/$STREAMING_PROVIDER/g" "driver-pravega/deploy/provision-pravega-aws.tf"
+      sed -i "s/\${AUTOMQ_ENVID}/$STREAMING_PROVIDER/g" "driver-$STREAMING_PROVIDER/deploy/${{ inputs.cloud_provider }}/provision-kafka-aws.tf"
+
+  - name: Apply Variables and Secrets for Streaming Provider
+    working-directory: driver-$STREAMING_PROVIDER/deploy/${{ inputs.cloud_provider }}
+    ## Set AK/SK and terraform s3 backend info
+    shell: bash
+    run: |
+      echo "current path is: $(pwd)"
+      sed -i "s/\${TF_BACKEND_BUCKET}/$TF_BACKEND_BUCKET/g" "$TF_FILENAME"
+      TF_FILENAME=$TF_FILENAME
+      sed -i "s/\${TF_BACKEND_KEY}/$TF_BACKEND_KEY/g" "$TF_FILENAME"
+      sed -i "s/\${TF_BACKEND_REGION}/${{ inputs.region }}/g" "$TF_FILENAME"
+      sed -i "s/\${AUTOMQ_ACCESS_KEY}/${{ secrets.AUTOMQ_ACCESS_KEY }}/g" "$TF_VAR_FILENAME"
+      sed -i "s/\${AUTOMQ_SECRET_KEY}/${{ secrets.AUTOMQ_SECRET_KEY }}/g" "$TF_VAR_FILENAME"
+    env:
+      TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
+      TF_BACKEND_KEY: ${{ secrets.TF_BACKEND_KEY }}-${{ inputs.cloud_provider }}
+      TF_FILENAME: provision-kafka-aws.tf
+      TF_VAR_FILENAME: var.tfvars
+
+  - name: Configure AWS credentials
+    uses: aws-actions/configure-aws-credentials@v4
+    with:
+      aws-access-key-id: ${{ secrets.AUTOMQ_ACCESS_KEY }}
+      aws-secret-access-key: ${{ secrets.AUTOMQ_SECRET_KEY }}
+      aws-region: ${{ inputs.region }}
+
+  - name: Setup SSH key
+    shell: bash
+    run: |
+      mkdir -p ~/.ssh
+      echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/${{ inputs.cloud_provider }}_aws
+      echo "${{ secrets.SSH_PUBLIC_KEY }}" > ~/.ssh/${{ inputs.cloud_provider }}_aws.pub
+      chmod 600 ~/.ssh/${{ inputs.cloud_provider }}_aws
+      chmod 644 ~/.ssh/${{ inputs.cloud_provider }}_aws.pub
+
+  - name: Install python
+    uses: actions/setup-python@v4
+    with:
+      python-version: '3.10'
+
+  - name: Setup Infra Cost
+    shell: bash
+    run: |
+      # Downloads the CLI based on your OS/arch and puts it in /usr/local/bin
+      curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
+      infracost --version
+      infracost configure set api_key ${{ secrets.INFRA_COST_API_KEY }}
+
+  - name: AWS Cost Estimate
+    shell: bash
+    run: |
+      echo "[INFO] Provider is AutoMQ"
+      cd  driver-$STREAMING_PROVIDER/deploy/${{ inputs.cloud_provider }}
+      infracost breakdown --path . --usage-file infracost/${{ inputs.cloud_provider }}-medium-500m-6t.yml >> /tmp/aws-cost.txt
+      
+      COST_DETAIL_FILE=/tmp/aws-cost.txt
+      cat $COST_DETAIL_FILE
+
+  - name: Read and extract costs from file
+    id: extract_costs
+    shell: bash
+    run: |
+      python3 workflow_scripts/python/extract_cost_info.py
+
+
+  - name: Output Costs
+    shell: bash
+    run: |
+      echo "Baseline cost: ${{ steps.extract_costs.outputs.baseline_cost }}"
+      echo "Usage cost: ${{ steps.extract_costs.outputs.usage_cost }}"
+      echo "Total cost: ${{ steps.extract_costs.outputs.total_cost }}"
+
+  - name: Setup terraform
+    uses: hashicorp/setup-terraform@v3
+
+  - name: Initialize terraform
+    working-directory: driver-$STREAMING_PROVIDER/deploy/${{ inputs.cloud_provider }}
+    shell: bash
+    run: terraform init
+
+  - name: Uninstall Cloud Infra
+    working-directory: driver-$STREAMING_PROVIDER/deploy/${{ inputs.cloud_provider }}
+    if: ${{ inputs.uninstall }}
+    shell: bash
+    run: terraform destroy --auto-approve -var-file var.tfvars
+
+
+  - name: Terraform Plan
+    working-directory: driver-$STREAMING_PROVIDER/deploy/${{ inputs.cloud_provider }}
+    shell: bash
+    run: terraform plan -var-file var.tfvars
+
+
+  - name: Apply terraform
+    working-directory: driver-$STREAMING_PROVIDER/deploy/${{ inputs.cloud_provider }}
+    if: ${{ !inputs.uninstall }}
+    shell: bash
+    run: terraform apply --auto-approve -var-file var.tfvars
+
+  - name: Install ansible
+    if: ${{ !inputs.uninstall && !inputs.execute_benchmark }}
+    shell: bash
+    run: |
+      python -m pip install --upgrade pip
+      python -m pip install --user ansible
+      python -m pip install --user jmespath
+
+  - name: Download Latest AutoMQ TGZ File
+    if: ${{ !inputs.uninstall && !inputs.execute_benchmark &&  inputs.streaming_provider == 'automq' }}
+    shell: bash
+    run: |
+      curl -L https://download.automq.com/community_edition/artifacts/automq-kafka-latest.tgz -o /tmp/automq-kafka-latest.tgz
+
+  - name: Install Streaming Cluster
+    working-directory: driver-$STREAMING_PROVIDER/deploy/${{ inputs.cloud_provider }}
+    if: ${{ !inputs.uninstall && !inputs.execute_benchmark && inputs.streaming_provider == 'automq' }}
+    shell: bash
+    run: |
+      if [ "$STREAMING_PROVIDER" == "automq" ]; then
+          ansible-playbook deploy.yaml -i terraform-aws/hosts.ini
+      elif [ "$STREAMING_PROVIDER" == "kafka" ]; then
+          wget https://github.com/adammck/terraform-inventory/releases/download/v0.10/terraform-inventory_v0.10_linux_amd64.zip
+          unzip terraform-inventory_v0.10_linux_amd64.zip
+          mv terraform-inventory /usr/local/bin
+          ansible-playbook   --user ubuntu --inventory `which terraform-inventory` deploy.yaml 
+      fi
+
+  - name: Execute Benchmark
+    working-directory: driver-$STREAMING_PROVIDER/deploy/${{ inputs.cloud_provider }}
+    if: ${{ inputs.execute_benchmark }}
+    env:
+      STREAMING_PROVIDER: $STREAMING_PROVIDER
+      CLOUD_PROVIDER: ${{ inputs.cloud_provider }}
+      shell: bash
+    run: |
+      chmod +x $GITHUB_WORKSPACE/workflow_scripts/bin/execute_benchmark.sh
+      ./$GITHUB_WORKSPACE/workflow_scripts/bin/execute_benchmark.sh
+
+
+  - name: Output Benchmark Result
+    if: ${{ inputs.execute_benchmark }}
+    shell: bash
+    run: |
+      sudo apt-get install jq
+      JSON_FILE=$(ls /tmp/*.json | head -n 1)
+      cat $JSON_FILE
+
+  - name: Install python dependencies
+    if: ${{ inputs.execute_benchmark }}
+    shell: bash
+    run: |
+      python -m pip install --upgrade pip
+      pip install regex
+
+  - name: Extract Information from Benchmark Worker Log
+    if: ${{ inputs.execute_benchmark }}
+    shell: bash
+    run: |
+      python3 workflow_scripts/python/extract_info_from_benchmark.py

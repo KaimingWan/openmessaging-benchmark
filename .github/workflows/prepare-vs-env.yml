@@ -25,20 +25,17 @@ on:
         type: boolean
 
 jobs:
-  shared_steps:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: ./.github/workflows/shared-steps.yml
 
   prepare_automq_env:
     name: Prepare AutoMQ Environment
     runs-on: ubuntu-latest
     env:
       STREAMING_PROVIDER: automq
-    needs: shared_steps  # 引用共享作业
     steps:
-      - name: Shared Steps
-        needs: shared_steps
+      - name: Checkout Benchmark Code
+        uses: actions/checkout@v3
+      - name: Execute Shared Steps
+        uses: ./.github/actions/prepare-vs-shared
 
   prepare_kafka_env:
     name: Prepare Kafka Environment
@@ -49,12 +46,7 @@ jobs:
     steps:
       - name: Test Workflow
         run: echo "Hello World"
-#    needs: shared_steps  # 引用共享作业
-#    steps:
-#      - name: Shared Steps
-#        needs: shared_steps
     ## todo support other compare streaming provider
-
 
 
 
@@ -73,5 +65,3 @@ jobs:
           TOTAL_COST: ${{ steps.extract_costs.outputs.total_cost }}
         run: |
           node $GITHUB_WORKSPACE/workflow_scripts/generate_report.js
-          with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
