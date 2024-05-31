@@ -1,15 +1,35 @@
 name: "Prepare Env Shared Steps"
+inputs:
+  automq_envid:
+    required: true
+  stream_provider:
+    required: true
+  automq_access_key:
+    required: true
+  automq_secret_key:
+    required: true
+  tf_backend_bucket:
+    required: true
+  tf_backend_key:
+    required: true
+  region:
+    required: true
+  cloud_provider:
+    required: true
+  ssh_private_key:
+    required: true
+  ssh_public_key:
+    required: true
+  infra_cost_api_key:
+    required: true
+  uninstall:
+    required: true
+  execute_benchmark:
+    required: true
 runs:
   using: "composite"
 steps:
   ## reference: https://www.jameskerr.blog/posts/sharing-steps-in-github-action-workflows/
-  - name: Cache local Maven repository
-    uses: actions/cache@v2
-    with:
-      path: ~/.m2/repository
-      key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-      restore-keys: |
-        ${{ runner.os }}-maven-
 
   - name: Fetch Latest Data
     shell: bash
