@@ -1,0 +1,63 @@
+name: Prepare Streaming Cluster
+
+on:
+  workflow_dispatch:
+    inputs:
+      cloud_provider:
+        default: aws-cn
+        required: true
+        type: string
+      compared_streaming_provider:
+        default: kafka
+        required: true
+        type: string
+      region:
+        default: cn-northwest-1
+        required: true
+        type: string
+      uninstall:
+        default: false
+        required: true
+        type: boolean
+      execute_benchmark:
+        default: false
+        required: true
+        type: boolean
+
+jobs:
+  prepare_automq_env:
+    name: Prepare AutoMQ Environment
+    runs-on: ubuntu-latest
+    env:
+      STREAMING_PROVIDER: automq
+    steps:
+      - uses: ./.github/workflows/shared-steps.yml
+#  prepare_kafka_env:
+#    name: Prepare Kafka Environment
+#    env:
+#      STREAMING_PROVIDER: kafka
+#    runs-on: ubuntu-latest
+#    if: ${{ inputs.compared_streaming_provider == 'kafka' }}
+#    steps:
+#      - uses: ./.github/workflows/shared-steps.yml
+    ## todo support other compare streaming provider
+
+
+
+
+  generate_report:
+    name: Generate Report
+    needs: [ prepare_automq_env, prepare_kafka_env ]
+    steps:
+      - name: Generate Report in Issue
+        if: ${{ inputs.execute_benchmark }}
+        env:
+          JSON_FILE_PATH: /tmp
+          EXTRACTED_DATA_PATH: /tmp/extracted_data
+          BASELINE_COST: ${{ steps.extract_costs.outputs.baseline_cost }}
+          USAGE_COST: ${{ steps.extract_costs.outputs.usage_cost }}
+          TOTAL_COST: ${{ steps.extract_costs.outputs.total_cost }}
+        run: |
+          node $GITHUB_WORKSPACE/workflow_scripts/generate_report.js
+          with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
