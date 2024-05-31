@@ -29,19 +29,30 @@ jobs:
   prepare_automq_env:
     name: Prepare AutoMQ Environment
     runs-on: ubuntu-latest
-    env:
-      STREAMING_PROVIDER: automq
     steps:
       - name: Checkout Benchmark Code
         uses: actions/checkout@v3
       - name: Execute Shared Steps
         uses: ./.github/actions/prepare-vs-shared
+        with:
+          automq_envid: automq
+          stream_provider: ${{ inputs.compared_streaming_provider }}
+          automq_access_key: ${{ secrets.AUTOMQ_ACCESS_KEY }}
+          automq_secret_key: ${{ secrets.AUTOMQ_SECRET_KEY }}
+          tf_backend_bucket: ${{ secrets.TF_BACKEND_BUCKET }}
+          tf_backend_key: ${{ secrets.TF_BACKEND_KEY }}-${{ inputs.cloud_provider }}
+          region: ${{ inputs.region }}
+          cloud_provider: ${{ inputs.cloud_provider }}
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          ssh_public_key: ${{ secrets.SSH_PUBLIC_KEY }}
+          infra_cost_api_key: ${{ secrets.INFRA_COST_API_KEY }}
+          uninstall: ${{ inputs.uninstall }}
+          execute_benchmark: ${{ inputs.execute_benchmark }}
+
 
   prepare_kafka_env:
     name: Prepare Kafka Environment
     runs-on: ubuntu-latest
-    env:
-      STREAMING_PROVIDER: kafka
     if: ${{ inputs.compared_streaming_provider == 'kafka' }}
     steps:
       - name: Test Workflow
