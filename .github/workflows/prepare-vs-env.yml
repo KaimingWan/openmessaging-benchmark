@@ -32,13 +32,15 @@ jobs:
       STREAMING_PROVIDER: automq
     steps:
       - uses: ./.github/workflows/shared-steps.yml
-#  prepare_kafka_env:
-#    name: Prepare Kafka Environment
-#    env:
-#      STREAMING_PROVIDER: kafka
-#    runs-on: ubuntu-latest
-#    if: ${{ inputs.compared_streaming_provider == 'kafka' }}
-#    steps:
+  prepare_kafka_env:
+    name: Prepare Kafka Environment
+    env:
+      STREAMING_PROVIDER: kafka
+    runs-on: ubuntu-latest
+    if: ${{ inputs.compared_streaming_provider == 'kafka' }}
+    steps:
+      - name: Test Workflow
+        run: echo "Hello World"
 #      - uses: ./.github/workflows/shared-steps.yml
     ## todo support other compare streaming provider
 
