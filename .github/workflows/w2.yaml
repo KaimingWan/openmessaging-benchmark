@@ -5,6 +5,12 @@ on:
     workflows: ["Prepare Streaming Cluster [Install]"]
     types:
       - completed
+  workflow_dispatch:
+    inputs:
+      cloud_provider:
+        default: aws-cn
+        required: true
+        type: string
 
 jobs:
   test:
