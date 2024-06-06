@@ -5,6 +5,8 @@ on:
     workflows: ["Prepare Streaming Cluster [Install]"]
     types:
       - completed
+  schedule:
+    - cron: '16 3 * * *'
   workflow_dispatch:
     inputs:
       cloud_provider:
@@ -15,23 +17,9 @@ on:
 
 
 jobs:
-  get_workflow_conclusion:
-    name: Lookup Conclusion of Workflow_Run Event
-    runs-on: ubuntu-latest
-    outputs:
-      conclusion: ${{ fromJson(steps.get_conclusion.outputs.data).conclusion }}
-    steps:
-      - name: Get Workflow Run
-        uses: octokit/request-action@v2.1.0
-        id: get_conclusion
-        with:
-          route: GET /repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   test:
     runs-on: ubuntu-latest
-    if: ${{ needs.get_workflow_conclusion.outputs.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     steps:
       - name: Run a one-line script
         run: echo Hello, world!
