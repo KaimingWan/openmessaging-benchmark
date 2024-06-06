@@ -6,7 +6,7 @@ on:
     types:
       - completed
   schedule:
-    - cron: '27 3 * * *'
+    - cron: '38 3 * * *'
   workflow_dispatch:
     inputs:
       cloud_provider:
