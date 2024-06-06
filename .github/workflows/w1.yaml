@@ -1,0 +1,16 @@
+name: w1
+
+on:
+  workflow_dispatch:
+    inputs:
+      cloud_provider:
+        default: aws-cn
+        required: true
+        type: string
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run a one-line script
+        run: echo Hello, world!

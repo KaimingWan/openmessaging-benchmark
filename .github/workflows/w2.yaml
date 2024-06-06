@@ -1,0 +1,13 @@
+on:
+  workflow_run:
+    workflows: ["Prepare Streaming Cluster [Install]"]
+    types:
+      - completed
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success'}}
+    steps:
+      - name: Run a one-line script
+        run: echo Hello, world!
