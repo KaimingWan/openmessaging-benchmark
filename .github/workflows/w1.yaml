@@ -1,4 +1,4 @@
-name: w1
+name: Prepare-Streaming-Cluster-Install
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
         required: true
         type: string
   schedule:
-    - cron: '27 3 * * *'
+    - cron: '52 3 * * *'
 
 jobs:
   test:

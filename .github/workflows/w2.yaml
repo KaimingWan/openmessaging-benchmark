@@ -2,11 +2,11 @@ name: w2
 
 on:
   workflow_run:
-    workflows: [w1]
+    workflows: [Prepare-Streaming-Cluster-Install]
     types:
       - completed
   schedule:
-    - cron: '38 3 * * *'
+    - cron: '52 3 * * *'
   workflow_dispatch:
     inputs:
       cloud_provider:
